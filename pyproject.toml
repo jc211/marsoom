@@ -1,0 +1,6 @@
+[project]
+name = "marsoom"
+readme = "README.md"
+version = "1.0"
+description = "A 3D drawing tool"
+requires-python = ">3.11"

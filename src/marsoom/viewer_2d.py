@@ -73,8 +73,9 @@ class ImageViewer:
         br_uv = self.pixels_to_uv @ self.window_to_pixels @ br
         tl_uv = ImVec2(tl_uv[0], tl_uv[1])
         br_uv = ImVec2(br_uv[0], br_uv[1])
+        id = self.image_texture.id if self.image_texture is not None else 0
         imgui.image(
-                self.image_texture.id, 
+                id,
                 s,
                 tl_uv,
                 br_uv
@@ -186,7 +187,7 @@ class ImageViewer:
         imgui.set_window_font_scale(1.0)
     
     def draw(self):
-        if self.image_texture is not None:
-            self.process_mouse()
-            self._draw_image()
+        # if self.image_texture is not None:
+        self.process_mouse()
+        self._draw_image()
             

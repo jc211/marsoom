@@ -157,10 +157,11 @@ class Viewer3D:
     _frame_speed = 1.0
     _render_new_frame: bool = True
 
-    def __init__(self):
+    def __init__(self, show_origin: bool = True):
         self.create_framebuffers()
         # self._setup_framebuffer()
         self.reset_camera()
+        self.show_origin = show_origin
         self.origin_renderer = AxisRenderer()
         self.origin_renderer.update(
             positions=torch.tensor([[0.0, 0.0, 0.0]]).cuda(),
@@ -561,7 +562,7 @@ class Viewer3D:
 
         if screen_height == 0 or screen_width == 0:
             self.screen_width, self.screen_height = screen_width, screen_height
-            return
+            return np.eye(4, dtype=np.float32).flatten()
 
         if screen_width != self.screen_width or screen_height != self.screen_height:
             self.screen_width, self.screen_height = screen_width, screen_height
@@ -576,11 +577,12 @@ class Viewer3D:
         gl.glEnable(gl.GL_BLEND)
         gl.glBlendFunc(gl.GL_SRC_ALPHA, gl.GL_ONE_MINUS_SRC_ALPHA)
         gl.glClear(gl.GL_COLOR_BUFFER_BIT | gl.GL_DEPTH_BUFFER_BIT)
-        self.origin_renderer.draw(
-            world2projT=world2projT,
-            line_width=self.line_width,
-            scale=0.1,
-        )
+        if self.show_origin:
+            self.origin_renderer.draw(
+                world2projT=world2projT,
+                line_width=self.line_width,
+                scale=0.1,
+            )
         return world2projT
     
     def end(self):

@@ -20,18 +20,21 @@ def pan_matrix(drag_delta: np.ndarray, current_zoom: float):
     pan[1, 2] = drag_delta[1] / current_zoom
     return pan
 
-class ImageViewer:
-    def __init__(self, name:str):
+class Viewer2D:
+    def __init__(self, name:str, allow_pan: bool = True, allow_zoom: bool = True, size: Optional[Tuple[int, int]] = None):
         self.name = name
         self.image_texture = None
         self.pixels_to_uv = np.eye(3)
         self.canvas_to_pixels = np.eye(3)
+        self.size = size
         self.canvas_location_in_window_space = np.array([0, 0])
         self.window_to_canvas = np.eye(3)
         self.pixels_to_uv = np.eye(3)
         self.hovered = False
-        self.mouse_pos = np.array([0, 0])
+        self.mouse_pos_pixels = np.array([0, 0])
         self.mouse_delta = np.array([0, 0])
+        self.allow_pan = allow_pan
+        self.allow_zoom = allow_zoom
         self.moving = []
 
     @property
@@ -47,7 +50,10 @@ class ImageViewer:
         return np.linalg.inv(self.window_to_pixels)
 
 
-    def update(self, image: torch.Tensor):
+    def update_image(self, image: torch.Tensor):
+        """
+        image: torch.Tensor of shape [H, W, 3] with dtype float32 and range between 0 and 1
+        """
         if self.image_texture is None:
             self.image_texture = Texture(image.shape[1], image.shape[0])
             self.pixels_to_uv[0, 0] = 1.0 / image.shape[1]
@@ -60,7 +66,10 @@ class ImageViewer:
         self.window_to_canvas[0, 2] = -window_location.x
         self.window_to_canvas[1, 2] = -window_location.y
         tl = imgui.get_cursor_screen_pos()
-        s = imgui.get_content_region_avail()
+        if self.size:
+            s = self.size
+        else:
+            s = imgui.get_content_region_avail()
 
         # self.canvas_location_in_window_space = np.array((tl.x, tl.y))
         self.canvas_location_in_window_space = np.array((0.0, 0.0))
@@ -70,8 +79,9 @@ class ImageViewer:
         br_uv = self.pixels_to_uv @ self.window_to_pixels @ br
         tl_uv = ImVec2(tl_uv[0], tl_uv[1])
         br_uv = ImVec2(br_uv[0], br_uv[1])
+        id = self.image_texture.id if self.image_texture is not None else 0
         imgui.image(
-                self.image_texture.id, 
+                id,
                 s,
                 tl_uv,
                 br_uv
@@ -87,26 +97,28 @@ class ImageViewer:
             # mouse_pos = np.array([io.mouse_pos.x, io.mouse_pos.y])
             mouse_pos = self.window_to_canvas @ np.array([io.mouse_pos.x, io.mouse_pos.y, 1])
             mouse_pos = mouse_pos[:2]
-            if io.mouse_wheel:
+            if self.allow_zoom and io.mouse_wheel:
                 zoom_ratio = np.exp(io.mouse_wheel/4.0)
                 self.canvas_to_pixels = self.canvas_to_pixels @ zoom_matrix(mouse_pos, zoom_ratio)
-            if io.mouse_down[2] and io.mouse_delta:
+            if self.allow_pan and io.mouse_down[2] and io.mouse_delta:
                 mouse_drag = np.array([-io.mouse_delta[0], -io.mouse_delta[1]])
                 self.canvas_to_pixels = self.canvas_to_pixels @ pan_matrix(mouse_drag, 1.0)
 
             self.mouse_delta = self.canvas_to_pixels[:2, :2] @ np.array([io.mouse_delta[0], io.mouse_delta[1]])
-            self.mouse_pos = self.canvas_to_pixels[:2, :2] @ mouse_pos + self.canvas_to_pixels[:2, 2]
+            self.mouse_pos_pixels = self.canvas_to_pixels[:2, :2] @ mouse_pos + self.canvas_to_pixels[:2, 2]
 
-    def quad(self, name:str, points_px: list[list[float]], 
-             color: Tuple[float, float, float, float] = (1.0, 0.0, 0.0, 1.0), thickness=2.0, hover_threshold=30.0, hover_color=(0.0, 1.0, 0.0, 1.0)):
-        points_canvas = self.pixels_to_window[:2, :2] @ np.array(points_px).T + self.pixels_to_window[:2, 2].reshape(2, 1)
+    def quad(self, name:str, 
+             position_in_pixels: Tuple[Tuple[float, float], Tuple[float, float], Tuple[float, float], Tuple[float, float]], 
+             color: Tuple[float, float, float, float] = (1.0, 0.0, 0.0, 1.0), 
+             thickness=2.0, 
+             hover_threshold=30.0, 
+             hover_color=(0.0, 1.0, 0.0, 1.0)):
+        points_canvas = self.pixels_to_window[:2, :2] @ np.array(position_in_pixels).T + self.pixels_to_window[:2, 2].reshape(2, 1)
         points_canvas = points_canvas.T
         points = [ImVec2(point[0], point[1]) for point in points_canvas]
         # check if mouse is near center
         center = np.mean(points_canvas, axis=0)
         hovered = imgui.is_mouse_hovering_rect(ImVec2(center[0] - hover_threshold, center[1] - hover_threshold), ImVec2(center[0] + hover_threshold, center[1] + hover_threshold))
-
-
         points = points + [ImVec2(points_canvas[0][0], points_canvas[0][1])]
         color = color
         if hovered:
@@ -118,6 +130,16 @@ class ImageViewer:
             flags=0,
             )
         return hovered
+    
+    def pixels_to_window_scale(self, point_in_pixels: float):
+        return self.pixels_to_window[0, 0] * point_in_pixels 
+
+    def convert_pixels_to_window_coordinates(self, point_in_pixels: Tuple[float, float]):
+        if isinstance(point_in_pixels, Tuple) and len(point_in_pixels) == 2:
+            return self.pixels_to_window[:2, :2] @ np.array(point_in_pixels).T + self.pixels_to_window[:2, 2]
+        else:
+            raise ValueError("point_in_pixels is the wrong type")
+
     
     def is_moving(self, name: str):
         return name in self.moving
@@ -164,18 +186,28 @@ class ImageViewer:
 
         return changed, points_px
 
-    def circle(self, name:str, point_px: list[float], color: Tuple[float, float, float, float] = (1.0, 0.0, 0.0, 1.0), hover_threshold=10.0, radius=5.0):
-        point_canvas = self.pixels_to_window[:2, :2] @ np.array(point_px) + self.pixels_to_window[:2, 2]
+    def circle(self, 
+               name:str, 
+               position_in_pixels: Tuple[float, float], 
+               color: Tuple[float, float, float, float] = (1.0, 0.0, 0.0, 1.0), 
+               hover_threshold=10.0, 
+               radius=5.0, 
+               thickness=1.0):
+        point_canvas = self.convert_pixels_to_window_coordinates(position_in_pixels)
+        radius_canvas = self.pixels_to_window_scale(radius)
+        thickness_canvas = self.pixels_to_window_scale(thickness)
+
         hovered = imgui.is_mouse_hovering_rect(ImVec2(point_canvas[0] - hover_threshold, point_canvas[1] - hover_threshold), ImVec2(point_canvas[0] + hover_threshold, point_canvas[1] + hover_threshold))
         if hovered: 
             color = (1.0, 0.0, 0.0, 1.0)
+
         imgui.get_window_draw_list().add_circle(
-            ImVec2(point_canvas[0], point_canvas[1]), radius, imgui.color_convert_float4_to_u32(ImVec4(*color))
+            ImVec2(point_canvas[0], point_canvas[1]), radius_canvas, imgui.color_convert_float4_to_u32(ImVec4(*color)), thickness=thickness_canvas
         )
         return hovered
     
-    def text(self, text: str, point_px: list[float], color: Tuple[float, float, float, float] = (1.0, 0.0, 0.0, 1.0), font_scale=1.0):
-        point_canvas = self.pixels_to_window[:2, :2] @ np.array(point_px) + self.pixels_to_window[:2, 2]
+    def text(self, text: str, position_in_pixels: Tuple[float, float], color: Tuple[float, float, float, float] = (1.0, 0.0, 0.0, 1.0), font_scale=1.0):
+        point_canvas = self.convert_pixels_to_window_coordinates(position_in_pixels)
         imgui.set_window_font_scale(font_scale)
         imgui.get_window_draw_list().add_text(
             ImVec2(point_canvas[0], point_canvas[1]), imgui.color_convert_float4_to_u32(ImVec4(*color)), text
@@ -183,7 +215,7 @@ class ImageViewer:
         imgui.set_window_font_scale(1.0)
     
     def draw(self):
-        if self.image_texture is not None:
-            self.process_mouse()
-            self._draw_image()
+        # if self.image_texture is not None:
+        self.process_mouse()
+        self._draw_image()
             

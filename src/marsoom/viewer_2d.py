@@ -101,16 +101,18 @@ class ImageViewer:
             self.mouse_delta = self.canvas_to_pixels[:2, :2] @ np.array([io.mouse_delta[0], io.mouse_delta[1]])
             self.mouse_pos = self.canvas_to_pixels[:2, :2] @ mouse_pos + self.canvas_to_pixels[:2, 2]
 
-    def quad(self, name:str, points_px: list[list[float]], 
-             color: Tuple[float, float, float, float] = (1.0, 0.0, 0.0, 1.0), thickness=2.0, hover_threshold=30.0, hover_color=(0.0, 1.0, 0.0, 1.0)):
-        points_canvas = self.pixels_to_window[:2, :2] @ np.array(points_px).T + self.pixels_to_window[:2, 2].reshape(2, 1)
+    def quad(self, name:str, 
+             position_in_pixels: Tuple[Tuple[float, float], Tuple[float, float], Tuple[float, float], Tuple[float, float]], 
+             color: Tuple[float, float, float, float] = (1.0, 0.0, 0.0, 1.0), 
+             thickness=2.0, 
+             hover_threshold=30.0, 
+             hover_color=(0.0, 1.0, 0.0, 1.0)):
+        points_canvas = self.pixels_to_window[:2, :2] @ np.array(position_in_pixels).T + self.pixels_to_window[:2, 2].reshape(2, 1)
         points_canvas = points_canvas.T
         points = [ImVec2(point[0], point[1]) for point in points_canvas]
         # check if mouse is near center
         center = np.mean(points_canvas, axis=0)
         hovered = imgui.is_mouse_hovering_rect(ImVec2(center[0] - hover_threshold, center[1] - hover_threshold), ImVec2(center[0] + hover_threshold, center[1] + hover_threshold))
-
-
         points = points + [ImVec2(points_canvas[0][0], points_canvas[0][1])]
         color = color
         if hovered:
@@ -122,6 +124,16 @@ class ImageViewer:
             flags=0,
             )
         return hovered
+    
+    def pixels_to_window_scale(self, point_in_pixels: float):
+        return self.pixels_to_window[0, 0] * point_in_pixels 
+
+    def convert_pixels_to_window_coordinates(self, point_in_pixels: Tuple[float, float]):
+        if isinstance(point_in_pixels, Tuple) and len(point_in_pixels) == 2:
+            return self.pixels_to_window[:2, :2] @ np.array(point_in_pixels).T + self.pixels_to_window[:2, 2]
+        else:
+            raise ValueError("point_in_pixels is the wrong type")
+
     
     def is_moving(self, name: str):
         return name in self.moving
@@ -168,22 +180,28 @@ class ImageViewer:
 
         return changed, points_px
 
-    def circle(self, name:str, position_in_pixels: list[float], color: Tuple[float, float, float, float] = (1.0, 0.0, 0.0, 1.0), hover_threshold=10.0, radius=5.0, thickness=1.0):
-        point_canvas = self.pixels_to_window[:2, :2] @ np.array(position_in_pixels) + self.pixels_to_window[:2, 2]
-        canvas_properties = self.pixels_to_window[:2, :2] @ np.array([radius, thickness])
-        radius_canvas = canvas_properties[0]
-        thickness_canvas = canvas_properties[1]
+    def circle(self, 
+               name:str, 
+               position_in_pixels: Tuple[float, float], 
+               color: Tuple[float, float, float, float] = (1.0, 0.0, 0.0, 1.0), 
+               hover_threshold=10.0, 
+               radius=5.0, 
+               thickness=1.0):
+        point_canvas = self.convert_pixels_to_window_coordinates(position_in_pixels)
+        radius_canvas = self.pixels_to_window_scale(radius)
+        thickness_canvas = self.pixels_to_window_scale(thickness)
 
         hovered = imgui.is_mouse_hovering_rect(ImVec2(point_canvas[0] - hover_threshold, point_canvas[1] - hover_threshold), ImVec2(point_canvas[0] + hover_threshold, point_canvas[1] + hover_threshold))
         if hovered: 
             color = (1.0, 0.0, 0.0, 1.0)
+
         imgui.get_window_draw_list().add_circle(
             ImVec2(point_canvas[0], point_canvas[1]), radius_canvas, imgui.color_convert_float4_to_u32(ImVec4(*color)), thickness=thickness_canvas
         )
         return hovered
     
-    def text(self, text: str, point_px: list[float], color: Tuple[float, float, float, float] = (1.0, 0.0, 0.0, 1.0), font_scale=1.0):
-        point_canvas = self.pixels_to_window[:2, :2] @ np.array(point_px) + self.pixels_to_window[:2, 2]
+    def text(self, text: str, position_in_pixels: Tuple[float, float], color: Tuple[float, float, float, float] = (1.0, 0.0, 0.0, 1.0), font_scale=1.0):
+        point_canvas = self.convert_pixels_to_window_coordinates(position_in_pixels)
         imgui.set_window_font_scale(font_scale)
         imgui.get_window_draw_list().add_text(
             ImVec2(point_canvas[0], point_canvas[1]), imgui.color_convert_float4_to_u32(ImVec4(*color)), text

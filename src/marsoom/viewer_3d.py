@@ -562,7 +562,7 @@ class Viewer3D:
 
         if screen_height == 0 or screen_width == 0:
             self.screen_width, self.screen_height = screen_width, screen_height
-            return
+            return np.eye(4, dtype=np.float32).flatten()
 
         if screen_width != self.screen_width or screen_height != self.screen_height:
             self.screen_width, self.screen_height = screen_width, screen_height

@@ -168,13 +168,17 @@ class ImageViewer:
 
         return changed, points_px
 
-    def circle(self, name:str, point_px: list[float], color: Tuple[float, float, float, float] = (1.0, 0.0, 0.0, 1.0), hover_threshold=10.0, radius=5.0):
-        point_canvas = self.pixels_to_window[:2, :2] @ np.array(point_px) + self.pixels_to_window[:2, 2]
+    def circle(self, name:str, position_in_pixels: list[float], color: Tuple[float, float, float, float] = (1.0, 0.0, 0.0, 1.0), hover_threshold=10.0, radius=5.0, thickness=1.0):
+        point_canvas = self.pixels_to_window[:2, :2] @ np.array(position_in_pixels) + self.pixels_to_window[:2, 2]
+        canvas_properties = self.pixels_to_window[:2, :2] @ np.array([radius, thickness])
+        radius_canvas = canvas_properties[0]
+        thickness_canvas = canvas_properties[1]
+
         hovered = imgui.is_mouse_hovering_rect(ImVec2(point_canvas[0] - hover_threshold, point_canvas[1] - hover_threshold), ImVec2(point_canvas[0] + hover_threshold, point_canvas[1] + hover_threshold))
         if hovered: 
             color = (1.0, 0.0, 0.0, 1.0)
         imgui.get_window_draw_list().add_circle(
-            ImVec2(point_canvas[0], point_canvas[1]), radius, imgui.color_convert_float4_to_u32(ImVec4(*color))
+            ImVec2(point_canvas[0], point_canvas[1]), radius_canvas, imgui.color_convert_float4_to_u32(ImVec4(*color)), thickness=thickness_canvas
         )
         return hovered
     

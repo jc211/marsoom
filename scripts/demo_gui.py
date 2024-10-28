@@ -1,10 +1,13 @@
 from imgui_bundle import imgui
 import marsoom
 import torch
+import warp as wp
 
+# Set device to monitor with opengl context so that the mapping works well
+# Especially important if using more than one GPU
+wp.set_device("cuda:0")
 
 class CustomWindow(marsoom.Window):
-
     def __init__(self):
         super().__init__()
         self.viewer = marsoom.Viewer3D()

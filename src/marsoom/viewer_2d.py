@@ -21,17 +21,20 @@ def pan_matrix(drag_delta: np.ndarray, current_zoom: float):
     return pan
 
 class Viewer2D:
-    def __init__(self, name:str):
+    def __init__(self, name:str, allow_pan: bool = True, allow_zoom: bool = True, size: Optional[Tuple[int, int]] = None):
         self.name = name
         self.image_texture = None
         self.pixels_to_uv = np.eye(3)
         self.canvas_to_pixels = np.eye(3)
+        self.size = size
         self.canvas_location_in_window_space = np.array([0, 0])
         self.window_to_canvas = np.eye(3)
         self.pixels_to_uv = np.eye(3)
         self.hovered = False
-        self.mouse_pos = np.array([0, 0])
+        self.mouse_pos_pixels = np.array([0, 0])
         self.mouse_delta = np.array([0, 0])
+        self.allow_pan = allow_pan
+        self.allow_zoom = allow_zoom
         self.moving = []
 
     @property
@@ -63,7 +66,10 @@ class Viewer2D:
         self.window_to_canvas[0, 2] = -window_location.x
         self.window_to_canvas[1, 2] = -window_location.y
         tl = imgui.get_cursor_screen_pos()
-        s = imgui.get_content_region_avail()
+        if self.size:
+            s = self.size
+        else:
+            s = imgui.get_content_region_avail()
 
         # self.canvas_location_in_window_space = np.array((tl.x, tl.y))
         self.canvas_location_in_window_space = np.array((0.0, 0.0))
@@ -91,15 +97,15 @@ class Viewer2D:
             # mouse_pos = np.array([io.mouse_pos.x, io.mouse_pos.y])
             mouse_pos = self.window_to_canvas @ np.array([io.mouse_pos.x, io.mouse_pos.y, 1])
             mouse_pos = mouse_pos[:2]
-            if io.mouse_wheel:
+            if self.allow_zoom and io.mouse_wheel:
                 zoom_ratio = np.exp(io.mouse_wheel/4.0)
                 self.canvas_to_pixels = self.canvas_to_pixels @ zoom_matrix(mouse_pos, zoom_ratio)
-            if io.mouse_down[2] and io.mouse_delta:
+            if self.allow_pan and io.mouse_down[2] and io.mouse_delta:
                 mouse_drag = np.array([-io.mouse_delta[0], -io.mouse_delta[1]])
                 self.canvas_to_pixels = self.canvas_to_pixels @ pan_matrix(mouse_drag, 1.0)
 
             self.mouse_delta = self.canvas_to_pixels[:2, :2] @ np.array([io.mouse_delta[0], io.mouse_delta[1]])
-            self.mouse_pos = self.canvas_to_pixels[:2, :2] @ mouse_pos + self.canvas_to_pixels[:2, 2]
+            self.mouse_pos_pixels = self.canvas_to_pixels[:2, :2] @ mouse_pos + self.canvas_to_pixels[:2, 2]
 
     def quad(self, name:str, 
              position_in_pixels: Tuple[Tuple[float, float], Tuple[float, float], Tuple[float, float], Tuple[float, float]], 

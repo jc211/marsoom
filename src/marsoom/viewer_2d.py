@@ -48,6 +48,9 @@ class ImageViewer:
 
 
     def update(self, image: torch.Tensor):
+        """
+        image: torch.Tensor of shape [H, W, 3] with dtype float32 and range between 0 and 1
+        """
         if self.image_texture is None:
             self.image_texture = Texture(image.shape[1], image.shape[0])
             self.pixels_to_uv[0, 0] = 1.0 / image.shape[1]

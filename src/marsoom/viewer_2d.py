@@ -20,7 +20,7 @@ def pan_matrix(drag_delta: np.ndarray, current_zoom: float):
     pan[1, 2] = drag_delta[1] / current_zoom
     return pan
 
-class ImageViewer:
+class Viewer2D:
     def __init__(self, name:str):
         self.name = name
         self.image_texture = None
@@ -47,7 +47,7 @@ class ImageViewer:
         return np.linalg.inv(self.window_to_pixels)
 
 
-    def update(self, image: torch.Tensor):
+    def update_image(self, image: torch.Tensor):
         """
         image: torch.Tensor of shape [H, W, 3] with dtype float32 and range between 0 and 1
         """

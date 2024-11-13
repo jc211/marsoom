@@ -13,7 +13,9 @@ class Window:
                  caption: str = "Demo Window", 
                  resizable: bool = True, 
                  vsync: bool = True, 
-                 visible: bool = True):
+                 visible: bool = True,
+                 docking: bool = True,
+                 ):
 
         self.window = pyglet.window.Window(
             width=width,
@@ -27,12 +29,16 @@ class Window:
         self.window.switch_to()        
         imgui.create_context()              
         io = imgui.get_io()
-        io.config_flags |= imgui.ConfigFlags_.docking_enable
-        io.config_windows_move_from_title_bar_only = True  
+        if docking: 
+            io.config_flags |= imgui.ConfigFlags_.docking_enable
+            io.config_windows_move_from_title_bar_only = True  
         self.imgui_renderer = PygletProgrammablePipelineRenderer(
                 self.window, attach_callbacks=True
         )
         self.window.push_handlers(self)
+    
+    def should_exit(self):
+        return self.window.has_exit
 
     def imgui_active(self):
         return (
@@ -62,4 +68,12 @@ class Window:
 
     def run(self, fps:float=60.0):
         pyglet.app.run(1.0 / fps) 
+    
+    def step(self):
+        pyglet.clock.tick(poll=True)
+        for w in pyglet.app.windows:
+            w.switch_to()
+            w.dispatch_events()
+            w.dispatch_event('on_draw')
+            w.flip()
 

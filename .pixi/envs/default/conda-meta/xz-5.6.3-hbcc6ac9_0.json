@@ -1,0 +1,34 @@
+{
+  "build": "hbcc6ac9_0",
+  "build_number": 0,
+  "depends": [
+    "__glibc >=2.17,<3.0.a0",
+    "libgcc >=13",
+    "liblzma 5.6.3 hb9d3cd8_0",
+    "liblzma-devel 5.6.3 hb9d3cd8_0",
+    "xz-gpl-tools 5.6.3 hbcc6ac9_0",
+    "xz-tools 5.6.3 hb9d3cd8_0"
+  ],
+  "license": "0BSD AND LGPL-2.1-or-later AND GPL-2.0-or-later",
+  "md5": "504333561007fbf0af129f0cee4f5652",
+  "name": "xz",
+  "purls": [],
+  "sha256": "32cd43b293f1e6498831c499195afc5693c2bd604244a08fe8dd7107a20757d2",
+  "size": 23435,
+  "subdir": "linux-64",
+  "timestamp": 1733321352996,
+  "version": "5.6.3",
+  "fn": "xz-5.6.3-hbcc6ac9_0.conda",
+  "url": "https://conda.anaconda.org/conda-forge/linux-64/xz-5.6.3-hbcc6ac9_0.conda",
+  "channel": "https://conda.anaconda.org/conda-forge/",
+  "extracted_package_dir": "/home/jchakra/.cache/rattler/cache/pkgs/xz-5.6.3-hbcc6ac9_0",
+  "files": [],
+  "paths_data": {
+    "paths_version": 1,
+    "paths": []
+  },
+  "link": {
+    "source": "/home/jchakra/.cache/rattler/cache/pkgs/xz-5.6.3-hbcc6ac9_0",
+    "type": 1
+  }
+}

@@ -1,0 +1,49 @@
+{
+  "build": "h4bc722e_0",
+  "build_number": 0,
+  "depends": [
+    "__glibc >=2.17,<3.0.a0",
+    "libgcc-ng >=12"
+  ],
+  "license": "BSD-2-Clause",
+  "license_family": "BSD",
+  "md5": "aeb98fdeb2e8f25d43ef71fbacbeec80",
+  "name": "libmpdec",
+  "purls": [],
+  "sha256": "d02d1d3304ecaf5c728e515eb7416517a0b118200cd5eacbe829c432d1664070",
+  "size": 89991,
+  "subdir": "linux-64",
+  "timestamp": 1723817448345,
+  "version": "4.0.0",
+  "fn": "libmpdec-4.0.0-h4bc722e_0.conda",
+  "url": "https://conda.anaconda.org/conda-forge/linux-64/libmpdec-4.0.0-h4bc722e_0.conda",
+  "channel": "https://conda.anaconda.org/conda-forge/",
+  "extracted_package_dir": "/home/jchakra/.cache/rattler/cache/pkgs/libmpdec-4.0.0-h4bc722e_0",
+  "files": [
+    "lib/libmpdec.so.4",
+    "lib/libmpdec.so.4.0.0"
+  ],
+  "paths_data": {
+    "paths_version": 1,
+    "paths": [
+      {
+        "_path": "lib/libmpdec.so.4",
+        "path_type": "softlink",
+        "sha256": "0ae5b91cc4a00f290bfd22d3bd81aa742e679343cfedd8a2e34aebd81d0c909f",
+        "sha256_in_prefix": "0452ea4e2a963b81b8dcd2d0531a0c5bd6d08a3c7a82ba2210199c0a4fba6ddc",
+        "size_in_bytes": 229512
+      },
+      {
+        "_path": "lib/libmpdec.so.4.0.0",
+        "path_type": "hardlink",
+        "sha256": "0ae5b91cc4a00f290bfd22d3bd81aa742e679343cfedd8a2e34aebd81d0c909f",
+        "sha256_in_prefix": "0ae5b91cc4a00f290bfd22d3bd81aa742e679343cfedd8a2e34aebd81d0c909f",
+        "size_in_bytes": 229512
+      }
+    ]
+  },
+  "link": {
+    "source": "/home/jchakra/.cache/rattler/cache/pkgs/libmpdec-4.0.0-h4bc722e_0",
+    "type": 1
+  }
+}

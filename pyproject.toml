@@ -5,7 +5,7 @@ version = "1.0"
 description = "A 3D drawing tool"
 requires-python = ">=3.10"
 dependencies = [
-    "imgui-bundle@git+https://github.com/jc211/imgui_bundle",
+    "imgui_bundle>=1.6.1",
     "pyglet",
     "warp-lang",
     "torch",

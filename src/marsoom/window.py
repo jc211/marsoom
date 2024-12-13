@@ -1,10 +1,11 @@
 import pyglet
 from pyglet import gl
-from imgui_bundle import imgui
+from imgui_bundle import imgui, imguizmo
 from imgui_bundle.python_backends.pyglet_backend import (
     PygletProgrammablePipelineRenderer,
 )
 
+gizmo = imguizmo.im_guizmo
 
 class Window:
     def __init__(self, 
@@ -56,6 +57,7 @@ class Window:
         gl.glClearColor(*self.bg_color)
         self.window.clear()
         imgui.new_frame()
+        gizmo.begin_frame()
         imgui.dock_space_over_viewport(flags=imgui.DockNodeFlags_.passthru_central_node)
         self.draw()
         imgui.render()

@@ -5,10 +5,8 @@ import warp as wp
 
 # Set device to monitor with opengl context so that the mapping works well
 # Especially important if using more than one GPU
-device = "cuda:1"
+device = "cuda:0"
 wp.set_device(device)
-
-
 
 
 class CustomWindow(marsoom.Window):

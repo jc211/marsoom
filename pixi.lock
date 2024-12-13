@@ -37,7 +37,7 @@ environments:
       - pypi: https://files.pythonhosted.org/packages/b9/f8/feced7779d755758a52d1f6635d990b8d98dc0a29fa568bbe0625f18fdf3/filelock-3.16.1-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/c6/b2/454d6e7f0158951d8a78c2e1eb4f69ae81beb8dca5fee9809c6c99e9d0d0/fsspec-2024.10.0-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/bb/55/a513de61cafe6bd70c064a5b714dc084120fe8f90a5ba51fbc5cfe42fc13/glfw-2.8.0-py2.py27.py3.py30.py31.py32.py33.py34.py35.py36.py37.py38.p39.p310.p311.p312.p313-none-manylinux_2_28_x86_64.whl
-      - pypi: git+https://github.com/jc211/imgui_bundle@aeb293ab3e0eca2f024baf138f6c653d953befd9
+      - pypi: https://files.pythonhosted.org/packages/2f/37/f9697ecc19e0176a02a405c7470e8dc12713ae229079a80d26fae735cb3f/imgui_bundle-1.6.1-cp313-cp313-manylinux_2_17_x86_64.manylinux2014_x86_64.whl
       - pypi: https://files.pythonhosted.org/packages/31/80/3a54838c3fb461f6fec263ebf3a3a41771bd05190238de3486aae8540c36/jinja2-3.1.4-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/0c/91/96cf928db8236f1bfab6ce15ad070dfdd02ed88261c2afafd4b43575e9e9/MarkupSafe-3.0.2-cp313-cp313-manylinux_2_17_x86_64.manylinux2014_x86_64.whl
       - pypi: https://files.pythonhosted.org/packages/43/e3/7d92a15f894aa0c9c4b49b8ee9ac9850d6e63b03c9c32c0367a13ae62209/mpmath-1.3.0-py3-none-any.whl
@@ -248,9 +248,10 @@ packages:
   sha256: 9cd20351b14587c6fe7063afb33cc03152e38dd2bff2b69613cb044bf3bdb635
   requires_dist:
   - glfw-preview ; extra == 'preview'
-- pypi: git+https://github.com/jc211/imgui_bundle@aeb293ab3e0eca2f024baf138f6c653d953befd9
+- pypi: https://files.pythonhosted.org/packages/2f/37/f9697ecc19e0176a02a405c7470e8dc12713ae229079a80d26fae735cb3f/imgui_bundle-1.6.1-cp313-cp313-manylinux_2_17_x86_64.manylinux2014_x86_64.whl
   name: imgui-bundle
-  version: 1.5.2
+  version: 1.6.1
+  sha256: 727548475dab62a46a2e7beb35e5b549e8fb9afe1ece34524748a7a55161051e
   requires_dist:
   - numpy
   - munch
@@ -411,9 +412,9 @@ packages:
 - pypi: .
   name: marsoom
   version: '1.0'
-  sha256: 45b25d956e9e156b320eafe34a600f4516634a316f17920f581f890aeb42471d
+  sha256: 17b5a5c8e9832e3d00793705c5c739431a4502c88390eef22453b561cb7e7220
   requires_dist:
-  - imgui-bundle @ git+https://github.com/jc211/imgui_bundle
+  - imgui-bundle>=1.6.1
   - pyglet
   - warp-lang
   - torch

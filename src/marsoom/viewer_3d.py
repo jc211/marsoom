@@ -13,6 +13,8 @@ from pyglet.math import Mat4 as PyMat4
 from imgui_bundle import imgui, ImVec2
 
 from marsoom.renderers.axis_renderer import AxisRenderer
+from imgui_bundle import imguizmo
+guizmo = imguizmo.im_guizmo
 
 
 frame_vertex_shader = """
@@ -168,6 +170,9 @@ class Viewer3D:
             quats=torch.tensor([[0.0, 0.0, 0.0, 1.0]]).cuda(),
         )
         self.axis_renderer = AxisRenderer()
+        self.in_imgui_window = False
+        self.window_draw_list = None
+        self.tl = None
 
 
     def create_framebuffers(self):
@@ -443,6 +448,28 @@ class Viewer3D:
         x_vw = self.x_vw()
         x_wv = np.linalg.inv(x_vw)
         return x_wv
+    
+    def manipulate(self, 
+				object_matrix: guizmo.Matrix16,
+				operation: guizmo.OPERATION = guizmo.OPERATION.translate, 
+				mode: guizmo.MODE = guizmo.MODE.local, 
+                ):
+        if self.in_imgui_window:
+            if self.tl is not None:
+                guizmo.set_drawlist(self.window_draw_list)
+                guizmo.set_rect(self.tl.x, self.tl.y, self.screen_width, self.screen_height)
+        else:
+            guizmo.set_rect(0, 0, self.screen_width, self.screen_height)
+        guizmo.allow_axis_flip(False)
+        proj_matrix = guizmo.Matrix16(self.gl_projectionT().flatten())
+        view_matrix = guizmo.Matrix16(self._view_matrix.flatten())
+        return guizmo.manipulate(
+            view=view_matrix,
+            projection=proj_matrix,
+            operation=operation,
+            mode=mode,
+            object_matrix=object_matrix,
+        )
 
     def reset_camera(self):
         self._camera_pos = PyVec3(0.0, -2.0, 0.4)
@@ -453,6 +480,12 @@ class Viewer3D:
         self.update_projection_matrix()
 
     def process_nav(self):
+        if self.in_imgui_window:
+            if not (self.imgui_active() and imgui.is_item_hovered()):
+                return
+        else:
+            if self.imgui_active():
+                return
         self.process_mouse()
         if (
             imgui.is_key_down(imgui.Key.w)
@@ -482,12 +515,15 @@ class Viewer3D:
             self.update_view_matrix()
 
     def process_mouse(self):
-        dx=imgui.get_io().mouse_delta.x
-        dy=-imgui.get_io().mouse_delta.y
-        scroll=-imgui.get_io().mouse_wheel*2
-        buttons=imgui.get_io().mouse_down
-        shift=imgui.get_io().key_shift
-        ctrl=imgui.get_io().key_ctrl
+        if guizmo.is_over():
+            return
+        io = imgui.get_io()
+        dx=io.mouse_delta.x
+        dy=-io.mouse_delta.y
+        scroll=-io.mouse_wheel*2
+        buttons=io.mouse_down
+        shift=io.key_shift
+        ctrl=io.key_ctrl
         if shift:
             sensitivity = 0.01
         else:
@@ -550,13 +586,16 @@ class Viewer3D:
             or imgui.get_io().want_capture_mouse
         )
 
-    def begin(self, name: str = ""):
-        self.name = name
-        if name:
-            imgui.begin(name)
+    def begin(self, in_imgui_window: bool = False):
+        # check if in imgui window
+        self.in_imgui_window = in_imgui_window
+        if self.in_imgui_window:
             ds = imgui.get_content_region_avail()
+            self.in_imgui_window = True
+            self.window_draw_list = imgui.get_window_draw_list()
         else:
             ds = imgui.get_io().display_size
+            self.in_imgui_window = False
 
         screen_width, screen_height = int(ds.x), int(ds.y)
 
@@ -587,23 +626,20 @@ class Viewer3D:
     
     def end(self):
         if self.screen_width == 0 or self.screen_height == 0:
-            if self.name:
-                imgui.end()
             return
+
         gl.glPolygonMode(gl.GL_FRONT_AND_BACK, gl.GL_FILL)
         gl.glBindBuffer(gl.GL_PIXEL_UNPACK_BUFFER, 0)
         gl.glBindFramebuffer(gl.GL_FRAMEBUFFER, 0)
         gl.glClear(gl.GL_COLOR_BUFFER_BIT | gl.GL_DEPTH_BUFFER_BIT)
         gl.glViewport(0, 0, self.screen_width, self.screen_height)
-        if self.name:
+        if self.window_draw_list:
+            self.tl = imgui.get_cursor_screen_pos()
             imgui.image(
                     self._frame_texture.value, 
                     ImVec2(self.screen_width, self.screen_height),
                     uv0=ImVec2(0, 1),
                     uv1=ImVec2(1, 0))
-            if self.imgui_active() and imgui.is_item_hovered():
-                self.process_nav()
-            imgui.end()
         else:
             with self._frame_shader:
                 gl.glActiveTexture(gl.GL_TEXTURE0)
@@ -615,5 +651,4 @@ class Viewer3D:
                 )
                 gl.glBindVertexArray(0)
                 gl.glBindTexture(gl.GL_TEXTURE_2D, 0)
-            if not self.imgui_active():
-                self.process_nav()
+    

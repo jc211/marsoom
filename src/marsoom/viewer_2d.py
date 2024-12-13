@@ -8,7 +8,7 @@ from imgui_bundle import imgui, ImVec2, ImVec4, imguizmo
 from marsoom.texture import Texture
 import marsoom
 
-gizmo = imguizmo.im_guizmo
+guizmo = imguizmo.im_guizmo
 
 class eViewerUnit(enum.Enum):
 	WINDOW = 1
@@ -333,16 +333,23 @@ class Viewer2D:
 		)
 	
 	def manipulate(self, 
-				operation: gizmo.OPERATION, 
-				mode: gizmo.MODE, 
-				object_matrix: np.ndarray, 
+				object_matrix: guizmo.Matrix16, 
+				operation: guizmo.OPERATION = guizmo.OPERATION.translate, 
+				mode: guizmo.MODE = guizmo.MODE.local, 
 				unit = eViewerUnit.PIXELS):
-		gizmo.set_drawlist(imgui.get_window_draw_list())
-		gizmo.set_rect(self._tl_window.x, self._tl_window.y, self.current_size.x, self.current_size.y)
-		gizmo.allow_axis_flip(False)
-		return gizmo.manipulate(
-			view=np.eye(4, dtype=np.float32), #x_vw transposed
-			projection=self.projection_matrix(unit=unit).T,
+		z = object_matrix.values[14]
+		if z >= 0:
+			print("Warning z should be negative otherwise it will be behind the camera")
+
+		guizmo.set_drawlist(imgui.get_window_draw_list())
+		guizmo.set_rect(self._tl_window.x, self._tl_window.y, self.current_size.x, self.current_size.y)
+		guizmo.allow_axis_flip(False)
+		projection = guizmo.Matrix16(self.projection_matrix(unit=unit).flatten())
+		view = guizmo.Matrix16(np.eye(4, dtype=np.float32).flatten())
+
+		return guizmo.manipulate(
+			view=view,
+			projection=projection,
 			operation=operation,
 			mode=mode,
 			object_matrix=object_matrix

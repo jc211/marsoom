@@ -1,5 +1,6 @@
-from imgui_bundle import imgui
 import marsoom
+from marsoom import imgui, guizmo
+
 import torch
 import warp as wp
 
@@ -7,6 +8,7 @@ import warp as wp
 # Especially important if using more than one GPU
 device = "cuda:0"
 wp.set_device(device)
+import numpy as np
 
 
 class CustomWindow(marsoom.Window):
@@ -28,8 +30,15 @@ class CustomWindow(marsoom.Window):
             "My Image Viewer",
             pixels_to_units=get_pixels_to_meters()
             )
-        sample_image = torch.randn((480, 640, 3), dtype=torch.float32).to(device)
-        self.image_viewer.update_image(sample_image)
+        manip_2d = np.array([[1, 0, 0, 0.0],
+                            [0, 1, 0, 0.0],
+                            [0, 0, 1, -1.0],
+                            [0, 0, 0, 1]], dtype=np.float32)
+        self.manip_2d = guizmo.Matrix16(manip_2d.T.flatten())
+
+        self.manip_3d_object = guizmo.Matrix16(np.eye(4).flatten())
+        # sample_image = torch.randn((480, 640, 3), dtype=torch.float32).to(device)
+        # self.image_viewer.update_image(sample_image)
     
     def draw_demo_controls(self):
         imgui.begin("3D Drawing")
@@ -37,51 +46,39 @@ class CustomWindow(marsoom.Window):
 
 
     def draw(self):
-        w2pT = self.viewer.begin("Test")
+        imgui.begin("3D Drawing")   
+        w2pT = self.viewer.begin(in_imgui_window=True)
         self.line_renderer.draw(w2pT, color=(1, 0, 0))
         self.point_renderer.draw(w2pT, point_size=10)
-
         self.viewer.end()
+        guizmo.set_id(0)
+        self.viewer.manipulate(
+            object_matrix=self.manip_3d_object,
+        ) # call after viewer.end so that the image gets drawn
+        self.viewer.process_nav()
+        imgui.end()
 
-        imgui.begin("Image Viewer")
+        imgui.begin("2D Viewer")
         self.image_viewer.draw()
+        self.image_viewer.axis(unit=marsoom.eViewerUnit.UNIT, scale=0.1)
         self.image_viewer.circle(position=(0, 0), color=(0, 1, 0, 1), radius=100.0, thickness= 10.0)
         self.image_viewer.circle(position=(0.1, 0), color=(0, 1, 1, 1), radius=0.1, thickness= 3.0, unit=marsoom.eViewerUnit.UNIT)
         self.image_viewer.text("Hello World", position=(-10, -10))
         self.image_viewer.polyline(((100, 100), (100, 200), (200, 200), (200, 100)))
+        guizmo.set_id(1)
+        self.image_viewer.manipulate(object_matrix=self.manip_2d,
+            operation=guizmo.OPERATION.translate, 
+            mode=guizmo.MODE.local, 
+            unit = marsoom.eViewerUnit.UNIT)
         imgui.end()
 
-
-        imgui.show_demo_window()
-
-        imgui.begin("Custom Window!")
-        imgui.text("Hello World!")
-        imgui.end()
+        # imgui.show_demo_window()
 
 def get_pixels_to_meters():
-    side_pixels = 100
-    side_meters = 0.1
-
-    p0 = (0, 0)
-    p0_map = (0, 0)
-
-    p1 = (side_pixels, side_pixels)
-    p1_map = (side_meters, side_meters)
-
-    p2 = (p0[0], p1[1])
-    p2_map = (p0_map[0], p1_map[1])
-    flip_map = True
-
-
-    pixels_to_meters = marsoom.compute_affine_transform(
-       p0,
-       p0_map,
-       p1,
-       p1_map,
-       p2,
-       p2_map,
-       flip_map
+    pixels_to_meters = np.array(
+            [[0.0, 0.001, 0.0], [0.001, 0.0, 0.0], [0.0, 0.0, 1.0]]
     )
+
     return pixels_to_meters
 
 if __name__ == "__main__":

@@ -8,6 +8,8 @@ from pyglet import gl
 from pyglet.graphics.shader import Shader, ShaderProgram
 from pyglet.graphics import vertexbuffer, vertexarray
 
+from marsoom.context_3d import Context3D
+
 vertex_shader = """
 #version 330 core
 uniform mat4 world2proj;
@@ -89,14 +91,14 @@ class LineRenderer:
 
     def draw(
         self,
-        world2projT,
+        context: Context3D,
         line_width: float = 1.0,
         color:Tuple[float, float, float]=(0.078, 0.129, 0.239),
     ):
         self.program.use()
         self.vao.bind()
         gl.glLineWidth(line_width)
-        self.program["world2proj"] = world2projT
+        self.program["world2proj"] = context.world2projT
         self.program["color"] = color
         gl.glDrawArrays(gl.GL_LINES, 0, self._size * 2)
         gl.glLineWidth(1.0)

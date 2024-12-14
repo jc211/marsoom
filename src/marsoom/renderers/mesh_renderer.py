@@ -2,10 +2,13 @@ import numpy as np
 import torch
 import warp as wp
 import ctypes
+from pathlib import Path
 
 from pyglet.graphics.shader import Shader, ShaderProgram
 from pyglet import gl
 from pyglet.graphics import vertexbuffer, vertexarray
+
+from marsoom.context_3d import Context3D
 
 shape_vertex_shader = """
 #version 330 core
@@ -120,7 +123,28 @@ void main()
 
 
 class MeshRenderer:
-    def __init__(self, vertices, indices):
+
+    @staticmethod
+    def from_file(filename: str | Path, scale: float = 1.0):
+        filename = Path(filename)
+        assert filename.exists() and filename.is_file()
+        import trimesh
+        faces = []
+        vertices = []
+        m = trimesh.load(filename)
+        for v in m.vertices:
+            vertices.append(np.array(v) * scale)
+
+        for f in m.faces:
+            faces.append(int(f[0]))
+            faces.append(int(f[1]))
+            faces.append(int(f[2]))
+        return MeshRenderer(np.array(vertices, dtype=np.float32), np.asarray(faces, np.uint32))
+
+
+    def __init__(self, vertices: np.ndarray, indices:np.ndarray):
+        assert vertices.dtype == np.float32
+        assert indices.dtype == np.uint32
         self.program = ShaderProgram(
             Shader(shape_vertex_shader, "vertex"),
             Shader(shape_fragment_shader, "fragment"),
@@ -246,8 +270,7 @@ class MeshRenderer:
 
     def draw(
         self,
-        world2projT: np.ndarray,
-        camera_position: np.ndarray,
+        context: Context3D,
         scale_modifier: float = 1.0,
         model=np.eye(4, dtype=np.float32),
         sun_direction=np.array([0.2, -0.8, 0.3], dtype=np.float32),
@@ -257,11 +280,11 @@ class MeshRenderer:
         sun_direction /= np.linalg.norm(sun_direction)
         self.program.use()
         self.vao.bind()
-        self.program["world2proj"] = world2projT
+        self.program["world2proj"] = context.world2projT
         self.program["model"] = model.flatten()
         self.program["lightColor"] = np.array([1.0, 1.0, 1.0], dtype=np.float32)
         self.program["sunDirection"] = sun_direction
-        self.program["viewPos"] = camera_position
+        self.program["viewPos"] = context.camera_positon
         self.program["scale_modifier"] = scale_modifier
         self.program["alpha"] = alpha
         gl.glDrawElementsInstanced(

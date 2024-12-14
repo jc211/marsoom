@@ -1,7 +1,9 @@
 from typing import Optional, Tuple
+from dataclasses import dataclass
 import sys
 import ctypes
 import math
+from contextlib import contextmanager
 
 import numpy as np
 import torch
@@ -13,6 +15,8 @@ from pyglet.math import Mat4 as PyMat4
 from imgui_bundle import imgui, ImVec2
 
 from marsoom.renderers.axis_renderer import AxisRenderer
+from marsoom.context_3d import Context3D
+
 from imgui_bundle import imguizmo
 guizmo = imguizmo.im_guizmo
 
@@ -139,6 +143,7 @@ def calibration_matrix_values(camera_matrix: np.ndarray, image_size: Tuple[int, 
         'principal_point': principal_point,
         'aspect_ratio': aspect_ratio
     }
+
 
 class Viewer3D:
     screen_width: int = 0
@@ -586,7 +591,8 @@ class Viewer3D:
             or imgui.get_io().want_capture_mouse
         )
 
-    def begin(self, in_imgui_window: bool = False):
+    @contextmanager
+    def draw(self, in_imgui_window: bool = False):
         # check if in imgui window
         self.in_imgui_window = in_imgui_window
         if self.in_imgui_window:
@@ -616,15 +622,21 @@ class Viewer3D:
         gl.glEnable(gl.GL_BLEND)
         gl.glBlendFunc(gl.GL_SRC_ALPHA, gl.GL_ONE_MINUS_SRC_ALPHA)
         gl.glClear(gl.GL_COLOR_BUFFER_BIT | gl.GL_DEPTH_BUFFER_BIT)
+
+        context = Context3D(
+            world2projT=world2projT,
+            camera_positon=self._camera_pos
+        )
+
         if self.show_origin:
             self.origin_renderer.draw(
-                world2projT=world2projT,
+                context=context,
                 line_width=self.line_width,
                 scale=0.1,
             )
-        return world2projT
+
+        yield context
     
-    def end(self):
         if self.screen_width == 0 or self.screen_height == 0:
             return
 

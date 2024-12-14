@@ -7,6 +7,8 @@ from pyglet import gl
 from pyglet.graphics.shader import Shader, ShaderProgram
 from pyglet.graphics import vertexbuffer, vertexarray
 
+from marsoom.context_3d import Context3D
+
 point_vertex_shader = """
 #version 330 core
 uniform mat4 world2proj;
@@ -96,14 +98,14 @@ class PointRenderer:
 
     def draw(
         self,
-        world2projT,
+        context: Context3D,
         point_size: float = 1.0,
         start_index: int = 0,
     ):
         gl.glPointSize(point_size)
         self.program.use()
         self.vao.bind()
-        self.program["world2proj"] = world2projT
+        self.program["world2proj"] = context.world2projT
         gl.glDrawArrays(gl.GL_POINTS, start_index, self._num_points)
         self.program.stop()
         self.vao.unbind()

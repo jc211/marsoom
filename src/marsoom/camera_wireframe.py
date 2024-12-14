@@ -7,9 +7,11 @@ import warp as wp
 from pyglet.graphics.shader import Shader, ShaderProgram
 from pyglet import gl
 
-from embodied_gaussians.vis.texture import Texture
-from embodied_gaussians.vis.image_quad import ImageQuad
-from embodied_gaussians.utils import COLORS
+from marsoom.viewer_3d import Context3D 
+
+from marsoom.texture import Texture
+from marsoom.image_quad import ImageQuad
+from marsoom.utils import COLORS
 
 line_vertex_shader = """
 #version 330 core
@@ -190,11 +192,11 @@ class CameraWireframe:
     def update_position(self, x_wv: np.ndarray):
         self.x_wv = x_wv
 
-    def draw(self, world2proj, line_width: float = 1.0):
+    def draw(self, context: Context3D, line_width: float = 1.0):
 
         self.program.use()
         gl.glLineWidth(line_width)
-        self.program["world2proj"] = world2proj
+        self.program["world2proj"] = context.world2projT
         self.program["world"] = self.x_wv.T.flatten()
         self.vlist.draw(gl.GL_LINES)
         self.program.stop()

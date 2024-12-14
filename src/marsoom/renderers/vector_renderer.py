@@ -6,6 +6,8 @@ from pyglet import gl
 from pyglet.graphics.shader import Shader, ShaderProgram
 from pyglet.graphics import vertexbuffer, vertexarray
 
+from marsoom.context_3d import Context3D
+
 vertex_shader = """
 #version 330 core
 uniform mat4 world2proj;
@@ -132,7 +134,7 @@ class VectorRenderer:
 
     def draw(
         self,
-        world2projT,
+        context: Context3D,
         vector_scale: float = 0.03,
         line_width: float = 1.0,
         start_idx: int = 0
@@ -140,7 +142,7 @@ class VectorRenderer:
         self.program.use()
         self.vao.bind()
         gl.glLineWidth(line_width)
-        self.program["world2proj"] = world2projT
+        self.program["world2proj"] = context.world2projT
         self.program["vector_scale"] = vector_scale
         gl.glDrawArrays(gl.GL_POINTS, start_idx, self._size)
         gl.glLineWidth(1.0)

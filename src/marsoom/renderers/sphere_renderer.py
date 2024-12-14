@@ -7,6 +7,8 @@ from pyglet import gl
 from pyglet.graphics.shader import Shader, ShaderProgram
 from pyglet.graphics import vertexbuffer, vertexarray
 
+from marsoom.context_3d import Context3D
+
 sphere_vertex_renderer = """
 #version 330 core
 
@@ -177,7 +179,7 @@ class SphereRenderer:
 
     def draw(
         self,
-        world2projT: np.ndarray,
+        context: Context3D,
         image_width: float,
         image_height: float,
         model=np.eye(4, dtype=np.float32),
@@ -188,7 +190,7 @@ class SphereRenderer:
         self.vao.bind()
         self.program["image_width"] = image_width
         self.program["image_height"] = image_height
-        self.program["world2proj"] = world2projT
+        self.program["world2proj"] = context.world2projT
         self.program["model"] = model.flatten()
         gl.glDrawArraysInstanced(
             gl.GL_LINE_LOOP, 0, self.num_segments + 1, self._num_points

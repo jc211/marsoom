@@ -1,14 +1,24 @@
-import marsoom
-from marsoom import imgui, guizmo
+from pathlib import Path
 
+import numpy as np
 import torch
 import warp as wp
+
+import marsoom
+from marsoom import imgui, guizmo
+import marsoom.renderers
+import marsoom.renderers.mesh_renderer
+
+import pyglet
+
 
 # Set device to monitor with opengl context so that the mapping works well
 # Especially important if using more than one GPU
 device = "cuda:0"
 wp.set_device(device)
-import numpy as np
+
+SCRIPT_PATH = Path(__file__).parent
+
 
 
 class CustomWindow(marsoom.Window):
@@ -37,8 +47,13 @@ class CustomWindow(marsoom.Window):
         self.manip_2d = guizmo.Matrix16(manip_2d.T.flatten())
 
         self.manip_3d_object = guizmo.Matrix16(np.eye(4).flatten())
-        # sample_image = torch.randn((480, 640, 3), dtype=torch.float32).to(device)
-        # self.image_viewer.update_image(sample_image)
+
+        # sphere_mesh = marsoom.renderers.mesh_renderer.create_sphere_mesh()
+        # self.example_mesh = marsoom.MeshRenderer(*sphere_mesh)
+        self.example_mesh = marsoom.MeshRenderer.from_file(SCRIPT_PATH/"blender_monkey.stl", scale=0.1)
+        self.example_mesh.update(torch.tensor([[0, 0, 0]], dtype=torch.float32).cuda(), torch.tensor([[1, 0, 0, 0]], dtype=torch.float32).cuda(), torch.tensor([[1.0, 1.0, 1.0]], dtype=torch.float32).cuda(), torch.tensor([[1, 0, 0]], dtype=torch.float32).cuda()) 
+        sample_image = torch.randn((480, 640, 3), dtype=torch.float32).to(device)
+        self.image_viewer.update_image(sample_image)
     
     def draw_demo_controls(self):
         imgui.begin("3D Drawing")
@@ -47,10 +62,11 @@ class CustomWindow(marsoom.Window):
 
     def draw(self):
         imgui.begin("3D Drawing")   
-        w2pT = self.viewer.begin(in_imgui_window=True)
-        self.line_renderer.draw(w2pT, color=(1, 0, 0))
-        self.point_renderer.draw(w2pT, point_size=10)
-        self.viewer.end()
+        with self.viewer.draw(in_imgui_window=True) as ctx:
+            self.line_renderer.draw(ctx, color=(1, 0, 0))
+            self.point_renderer.draw(ctx, point_size=10)
+            self.example_mesh.draw(ctx)
+
         guizmo.set_id(0)
         self.viewer.manipulate(
             object_matrix=self.manip_3d_object,

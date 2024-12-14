@@ -7,6 +7,8 @@ from pyglet import gl
 from pyglet.graphics.shader import Shader, ShaderProgram
 from pyglet.graphics import vertexbuffer, vertexarray
 
+from marsoom.context_3d import Context3D
+
 vertex_shader = """
 #version 330 core
 uniform mat4 world2proj;
@@ -114,8 +116,7 @@ class SpringRenderer:
 
     def draw(
         self,
-        world2projT,
-        model=np.eye(4, dtype=np.float32),
+        context: Context3D,
         line_width: float = 1.0,
         color: np.ndarray = np.array([0.078, 0.129, 0.239], dtype=np.float32),
     ):
@@ -126,7 +127,7 @@ class SpringRenderer:
         gl.glBindBuffer(gl.GL_ELEMENT_ARRAY_BUFFER, self.mesh_ebo.id)
 
         gl.glLineWidth(line_width)
-        self.program["world2proj"] = world2projT
+        self.program["world2proj"] = context.world2projT
         self.program["color"] = color
         gl.glDrawElements(gl.GL_LINES, self._num_lines * 2, gl.GL_UNSIGNED_INT, 0)
         self.program.stop()

@@ -6,6 +6,8 @@ from pyglet import gl
 from pyglet.graphics.shader import Shader, ShaderProgram
 from pyglet.graphics import vertexbuffer, vertexarray
 
+from marsoom.context_3d import Context3D
+
 pose_vertex_shader = """
 #version 330 core
 uniform mat4 world2proj;
@@ -161,14 +163,14 @@ class AxisRenderer:
 
     def draw(
         self,
-        world2projT,
+        context: Context3D,
         scale: float = 0.03,
         line_width: float = 1.0,
     ):
         self.program.use()
         self.vao.bind()
         gl.glLineWidth(line_width)
-        self.program["world2proj"] = world2projT
+        self.program["world2proj"] = context.world2projT
         self.program["scale"] = scale
         gl.glDrawArrays(gl.GL_POINTS, 0, self._num_points)
         self.program.stop()

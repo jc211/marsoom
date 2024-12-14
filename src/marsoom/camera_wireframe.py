@@ -11,7 +11,7 @@ from marsoom.viewer_3d import Context3D
 
 from marsoom.texture import Texture
 from marsoom.image_quad import ImageQuad
-from marsoom.utils import COLORS
+import marsoom.utils
 
 line_vertex_shader = """
 #version 330 core
@@ -40,15 +40,15 @@ void main()
 class CameraWireframeWithImage:
     def __init__(
         self,
-        width: int,
-        height: int,
-        K_opengl: np.ndarray,
-        z_offset: float,
+        z_offset: float = 0.1,
+        width: int = marsoom.utils.DEFAULT_WIDTH,
+        height: int = marsoom.utils.DEFAULT_HEIGHT,
+        K_opengl: np.ndarray = marsoom.utils.DEFAULT_K_OPENGL_T.T.copy(),
         frame_color: Tuple[float, float, float, float] = (0.2, 0.2, 0.2, 0.1),
         X_WV: np.ndarray = np.eye(4, dtype=np.float32),
     ):
         self.camera_wireframe = CameraWireframe(
-            K_opengl, z_offset, frame_color=frame_color
+            z_offset=z_offset, K_opengl=K_opengl, frame_color=frame_color
         )
         self.texture = Texture(width, height)
         self.image_quad = ImageQuad(self.camera_wireframe.frame_positions)
@@ -63,26 +63,25 @@ class CameraWireframeWithImage:
 
     def draw(
         self,
-        world2proj: np.ndarray,
-        model=np.eye(4, dtype=np.float32),
+        context: Context3D,
         line_width: float = 1.0,
         alpha: float = 1.0,
     ):
-        self.image_quad.draw(world2proj, self.texture.id, alpha=alpha)
-        self.camera_wireframe.draw(world2proj, line_width=line_width)
+        self.image_quad.draw(context, self.texture.id, alpha=alpha)
+        self.camera_wireframe.draw(context, line_width=line_width)
 
 
 class CameraWireframe:
     def __init__(
         self,
-        K_opengl: np.ndarray,
-        z_offset,
+        K_opengl: np.ndarray = marsoom.utils.DEFAULT_K_OPENGL_T,
+        z_offset: float = 0.1,
         frame_color: Tuple[float, float, float, float] = (0.58, 0.58, 0.58, 0.58),
     ):
-        top_left = np.array([-1.0, 1.0, z_offset, 1.0], dtype=np.float32)
-        top_right = np.array([1.0, 1.0, z_offset, 1.0], dtype=np.float32)
-        bot_left = np.array([-1.0, -1.0, z_offset, 1.0], dtype=np.float32)
-        bot_right = np.array([1.0, -1.0, z_offset, 1.0], dtype=np.float32)
+        top_left = np.array([-1.0, 1.0, 0.0, 1.0], dtype=np.float32)
+        top_right = np.array([1.0, 1.0, 0.0, 1.0], dtype=np.float32)
+        bot_left = np.array([-1.0, -1.0, 0.0, 1.0], dtype=np.float32)
+        bot_right = np.array([1.0, -1.0, 0.0, 1.0], dtype=np.float32)
 
         Kinv = np.linalg.inv(K_opengl)
         top_left = Kinv @ top_left
@@ -90,15 +89,21 @@ class CameraWireframe:
         bot_left = Kinv @ bot_left
         bot_right = Kinv @ bot_right
 
-        top_left = top_left[:3] / top_left[3]
-        top_right = top_right[:3] / top_right[3]
-        bot_left = bot_left[:3] / bot_left[3]
-        bot_right = bot_right[:3] / bot_right[3]
+
+        top_left = top_left[:3] / top_left[3] 
+        top_right = top_right[:3] / top_right[3] 
+        bot_left = bot_left[:3] / bot_left[3]  
+        bot_right = bot_right[:3] / bot_right[3] 
+
+        top_left = top_left / np.linalg.norm(top_left) * z_offset
+        top_right = top_right / np.linalg.norm(top_right) * z_offset
+        bot_left = bot_left / np.linalg.norm(bot_left) * z_offset
+        bot_right = bot_right / np.linalg.norm(bot_right) * z_offset
 
         frame_color = np.array(frame_color, dtype=np.float32)
-        red = np.array(COLORS["RED"], dtype=np.float32)
-        green = np.array(COLORS["GREEN"], dtype=np.float32)
-        blue = np.array(COLORS["BLUE"], dtype=np.float32)
+        red = np.array(marsoom.utils.COLORS["RED"], dtype=np.float32)
+        green = np.array(marsoom.utils.COLORS["GREEN"], dtype=np.float32)
+        blue = np.array(marsoom.utils.COLORS["BLUE"], dtype=np.float32)
         x_axis_color = np.array([red[0], red[1], red[2], 1.0], dtype=np.float32)
         y_axis_color = np.array([green[0], green[1], green[2], 1.0], dtype=np.float32)
         z_axis_color = np.array([blue[0], blue[1], blue[2], 1.0], dtype=np.float32)

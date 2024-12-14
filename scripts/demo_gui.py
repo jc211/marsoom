@@ -6,10 +6,7 @@ import warp as wp
 
 import marsoom
 from marsoom import imgui, guizmo
-import marsoom.renderers
-import marsoom.renderers.mesh_renderer
 
-import pyglet
 
 
 # Set device to monitor with opengl context so that the mapping works well
@@ -51,9 +48,17 @@ class CustomWindow(marsoom.Window):
         # sphere_mesh = marsoom.renderers.mesh_renderer.create_sphere_mesh()
         # self.example_mesh = marsoom.MeshRenderer(*sphere_mesh)
         self.example_mesh = marsoom.MeshRenderer.from_file(SCRIPT_PATH/"blender_monkey.stl", scale=0.1)
-        self.example_mesh.update(torch.tensor([[0, 0, 0]], dtype=torch.float32).cuda(), torch.tensor([[1, 0, 0, 0]], dtype=torch.float32).cuda(), torch.tensor([[1.0, 1.0, 1.0]], dtype=torch.float32).cuda(), torch.tensor([[1, 0, 0]], dtype=torch.float32).cuda()) 
+        # self.example_mesh.update(torch.tensor([[0, 0, 0]], dtype=torch.float32).cuda(), torch.tensor([[1, 0, 0, 0]], dtype=torch.float32).cuda(), torch.tensor([[1.0, 1.0, 1.0]], dtype=torch.float32).cuda(), torch.tensor([[1, 0, 0]], dtype=torch.float32).cuda()) 
+        self.example_mesh.update(positions=torch.tensor([[0, 0, 0]], dtype=torch.float32).cuda())
         sample_image = torch.randn((480, 640, 3), dtype=torch.float32).to(device)
         self.image_viewer.update_image(sample_image)
+
+        self.camera_1 = marsoom.CameraWireframeWithImage(
+            z_offset=0.2
+        )
+        self.camera_1.update_image(sample_image)
+
+
     
     def draw_demo_controls(self):
         imgui.begin("3D Drawing")
@@ -66,6 +71,7 @@ class CustomWindow(marsoom.Window):
             self.line_renderer.draw(ctx, color=(1, 0, 0))
             self.point_renderer.draw(ctx, point_size=10)
             self.example_mesh.draw(ctx)
+            self.camera_1.draw(ctx, line_width=1.0)
 
         guizmo.set_id(0)
         self.viewer.manipulate(

@@ -16,6 +16,7 @@ from imgui_bundle import imgui, ImVec2
 
 from marsoom.renderers.axis_renderer import AxisRenderer
 from marsoom.context_3d import Context3D
+from marsoom.utils import calibration_matrix_values, convert_K_to_projection_matrixT, str_buffer
 
 from imgui_bundle import imguizmo
 guizmo = imguizmo.im_guizmo
@@ -82,67 +83,6 @@ void main() {
     FragColor = vec4(bourkeColorMap(sqrt(1.0 - depth)), 1.0);
 }
 """
-
-def str_buffer(string: str):
-    return ctypes.c_char_p(string.encode("utf-8"))
-
-def convert_K_to_projection_matrixT(
-    K: np.ndarray, width: int, height: int, near: float = 0.0001, far: float = 10.0
-) -> np.ndarray:
-    fx, fy, u0, v0 = K[0, 0], K[1, 1], K[0, 2], K[1, 2]
-    l = -u0 * near / fx
-    r = (width - u0) * near / fx
-    b = -(height - v0) * near / fy
-    t = v0 * near / fy
-
-    return np.array(
-        [
-            [2 * near / (r - l), 0, (r + l) / (r - l), 0],
-            [0, 2 * near / (t - b), (t + b) / (t - b), 0],
-            [0, 0, (far + near) / (near - far), 2 * far * near / (near - far)],
-            [0, 0, -1.0, 0],
-        ],
-        dtype=np.float32,
-    ).T
-
-def calibration_matrix_values(camera_matrix: np.ndarray, image_size: Tuple[int, int], aperture_width: float=0.0, aperture_height: float=0.0):
-    # https://github.com/opencv/opencv/blob/93b607dc72e1d7953b17a58d8fb5f130b05c3d7a/modules/calib3d/src/calibration.cpp#L3988
-    if camera_matrix.shape != (3, 3):
-        raise ValueError("Size of camera_matrix must be 3x3!")
-    
-    K = camera_matrix
-    assert image_size[0] != 0 and image_size[1] != 0 and K[0, 0] != 0.0 and K[1, 1] != 0.0
-
-    # Calculate pixel aspect ratio
-    aspect_ratio = K[1, 1] / K[0, 0]
-
-    # Calculate number of pixel per realworld unit
-    if aperture_width != 0.0 and aperture_height != 0.0:
-        mx = image_size[0] / aperture_width
-        my = image_size[1] / aperture_height
-    else:
-        mx = 1.0
-        my = aspect_ratio
-
-    # Calculate fovx and fovy
-    fovx = math.atan2(K[0, 2], K[0, 0]) + math.atan2(image_size[0] - K[0, 2], K[0, 0])
-    fovy = math.atan2(K[1, 2], K[1, 1]) + math.atan2(image_size[1] - K[1, 2], K[1, 1])
-    fovx = fovx * 180.0 / math.pi
-    fovy = fovy * 180.0 / math.pi
-
-    # Calculate focal length
-    focal_length = K[0, 0] / mx
-
-    # Calculate principle point
-    principal_point = (K[0, 2] / mx, K[1, 2] / my)
-
-    return {
-        'fovx': fovx,
-        'fovy': fovy,
-        'focal_length': focal_length,
-        'principal_point': principal_point,
-        'aspect_ratio': aspect_ratio
-    }
 
 
 class Viewer3D:

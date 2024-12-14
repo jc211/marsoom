@@ -3,6 +3,8 @@ import numpy as np
 from pyglet import gl
 from pyglet.graphics.shader import Shader, ShaderProgram
 
+from marsoom.context_3d import Context3D
+
 quad_vertex_shader = """
 #version 330 core
 uniform mat4 world2proj;
@@ -60,10 +62,10 @@ class ImageQuad:
     def update_position(self, x_wv):
         self.x_wv = x_wv
 
-    def draw(self, world2proj, tex_id, alpha=1.0):
+    def draw(self, context: Context3D, tex_id, alpha=1.0):
 
         self.program.use()
-        self.program["world2proj"] = world2proj
+        self.program["world2proj"] = context.world2projT
         self.program["world"] = self.x_wv.T.flatten()
         self.program["alpha"] = alpha
         gl.glActiveTexture(gl.GL_TEXTURE0)

@@ -1,3 +1,5 @@
+from typing import Optional
+
 import numpy as np
 import torch
 import warp as wp
@@ -125,7 +127,7 @@ void main()
 class MeshRenderer:
 
     @staticmethod
-    def from_file(filename: str | Path, scale: float = 1.0):
+    def from_file(filename: str | Path, scale: float = 1.0, color: np.ndarray = np.array([1.0, 0.0, 0.0], dtype=np.float32)):
         filename = Path(filename)
         assert filename.exists() and filename.is_file()
         import trimesh
@@ -139,16 +141,18 @@ class MeshRenderer:
             faces.append(int(f[0]))
             faces.append(int(f[1]))
             faces.append(int(f[2]))
-        return MeshRenderer(np.array(vertices, dtype=np.float32), np.asarray(faces, np.uint32))
+        return MeshRenderer(np.array(vertices, dtype=np.float32), np.asarray(faces, np.uint32), color)
 
 
-    def __init__(self, vertices: np.ndarray, indices:np.ndarray):
+    def __init__(self, vertices: np.ndarray, indices:np.ndarray, default_color: np.ndarray = np.array([1.0, 0.0, 0.0], dtype=np.float32)):
         assert vertices.dtype == np.float32
         assert indices.dtype == np.uint32
+        assert default_color.dtype == np.float32
         self.program = ShaderProgram(
             Shader(shape_vertex_shader, "vertex"),
             Shader(shape_fragment_shader, "fragment"),
         )
+        self.default_color = default_color
         self.vertices = vertices
         self.indices = indices
         self.num_floats_per_element = [3, 4, 3, 3]  # position, rotation, scaling, color
@@ -244,14 +248,26 @@ class MeshRenderer:
     def update(
         self,
         positions: torch.Tensor,
-        rotations: torch.Tensor,
-        scaling: torch.Tensor,
-        colors: torch.Tensor,
+        rotations: Optional[torch.Tensor] = None,
+        scaling: Optional[torch.Tensor] = None,
+        colors: Optional[torch.Tensor] = None,
     ):
         assert positions.shape[1] == 3
-        assert rotations.shape[1] == 4
-        assert scaling.shape[1] == 3
-        assert colors.shape[1] == 3
+        if rotations is not None:
+            assert rotations.shape[1] == 4
+        else:
+            rotations = torch.zeros((positions.shape[0], 4), dtype=torch.float32).cuda()
+            rotations[:, 3] = 1.0
+        if scaling is not None:
+            assert scaling.shape[1] == 3
+        else:
+            scaling = torch.ones((positions.shape[0], 3), dtype=torch.float32).cuda()
+
+        if colors is not None:
+            assert colors.shape[1] == 3
+        else:
+            colors = torch.ones((positions.shape[0], 3), dtype=torch.float32)*self.default_color
+            colors = colors.cuda()
         new_num_instances = positions.shape[0]
         if new_num_instances != self.num_instances:
             self._resize(new_num_instances)

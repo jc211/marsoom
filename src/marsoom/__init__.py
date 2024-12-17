@@ -7,5 +7,6 @@ from marsoom.renderers.mesh_renderer import MeshRenderer
 from marsoom.camera_wireframe import CameraWireframe, CameraWireframeWithImage
 from marsoom.axes import Axes
 from marsoom.utils import convert_K_to_projection_matrixT, COLORS
+from marsoom.shape_3d import Circle, Point
 from imgui_bundle import imguizmo, imgui
 guizmo = imguizmo.im_guizmo

@@ -72,6 +72,9 @@ class CustomWindow(marsoom.Window):
         )
         self.camera_1.matrix = Mat4().translate((1.0, 0.0, 0.0))
         self.camera_1.update_image(sample_image)
+        # self.circle = marsoom.Circle(1.0, 1.0, 1.0, 0.3, batch=self.batch)
+        pyglet.gl.glPointSize(10)
+        self.point = marsoom.Point(0.5, 0.5, 0.0, color=(255, 0, 0), batch=self.batch)
 
 
     

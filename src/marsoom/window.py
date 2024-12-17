@@ -1,9 +1,15 @@
+from typing import Optional, Tuple
+import numpy as np
 import pyglet
 from pyglet import gl
 from imgui_bundle import imgui, imguizmo
 from imgui_bundle.python_backends.pyglet_backend import (
     PygletProgrammablePipelineRenderer,
 )
+from marsoom.viewer_3d import Viewer3D
+from marsoom.viewer_2d import Viewer2D
+import marsoom.decoders.stl
+from marsoom.utils import ASSET_PATH
 
 gizmo = imguizmo.im_guizmo
 
@@ -18,6 +24,9 @@ class Window:
                  docking: bool = True,
                  ):
 
+        pyglet.model.codecs.add_decoders(marsoom.decoders.stl)
+        pyglet.resource.path.append(str(ASSET_PATH))
+        pyglet.resource.reindex()
         self.window = pyglet.window.Window(
             width=width,
             height=height,
@@ -78,4 +87,16 @@ class Window:
             w.dispatch_events()
             w.dispatch_event('on_draw')
             w.flip()
+        
+    def create_3D_viewer(self, show_origin: bool = True):
+        return Viewer3D(self, show_origin=show_origin)
+    
+    def create_2D_viewer(self, 
+                         allow_pan: bool = True, 
+                         allow_zoom: bool = True, 
+                         pixels_to_units: np.ndarray = np.eye(3, dtype=np.float32),
+                         desired_size: Optional[Tuple[int, int]] = None):
+                         
+        return Viewer2D(self, allow_pan=allow_pan, allow_zoom=allow_zoom, pixels_to_units=pixels_to_units, desired_size=desired_size)
+
 

@@ -3,9 +3,11 @@ from pathlib import Path
 import numpy as np
 import torch
 import warp as wp
+from pyglet.math import Mat4
 
 import marsoom
 from marsoom import imgui, guizmo
+import pyglet
 
 
 
@@ -16,12 +18,10 @@ wp.set_device(device)
 
 SCRIPT_PATH = Path(__file__).parent
 
-
-
 class CustomWindow(marsoom.Window):
     def __init__(self):
         super().__init__()
-        self.viewer = marsoom.Viewer3D()
+        self.viewer = self.create_3D_viewer()
         self.line_renderer = marsoom.LineRenderer()
         self.line_renderer.update(
             torch.tensor([[0, 0, 0], [1, 0, 0], [0, 1, 0], [0, 0, 1]], dtype=torch.float32),
@@ -33,7 +33,7 @@ class CustomWindow(marsoom.Window):
             torch.tensor([[0, 0, 0], [1, 0, 0], [0, 1, 0], [0, 0, 1]], dtype=torch.float32),
         )
 
-        self.image_viewer = marsoom.Viewer2D(
+        self.image_viewer = self.create_2D_viewer(
             "My Image Viewer",
             pixels_to_units=get_pixels_to_meters()
             )
@@ -50,12 +50,27 @@ class CustomWindow(marsoom.Window):
         self.example_mesh = marsoom.MeshRenderer.from_file(SCRIPT_PATH/"blender_monkey.stl", scale=0.1)
         # self.example_mesh.update(torch.tensor([[0, 0, 0]], dtype=torch.float32).cuda(), torch.tensor([[1, 0, 0, 0]], dtype=torch.float32).cuda(), torch.tensor([[1.0, 1.0, 1.0]], dtype=torch.float32).cuda(), torch.tensor([[1, 0, 0]], dtype=torch.float32).cuda()) 
         self.example_mesh.update(positions=torch.tensor([[0, 0, 0]], dtype=torch.float32).cuda())
+
+
+        self.batch = pyglet.graphics.Batch()
+        self.example_mesh_2 = pyglet.resource.model("robots/panda/meshes/link0.stl", self.batch)
+        self.example_mesh_2.color = (0.0, 1.0, 0.0, 1.0)
+        self.example_mesh_2.matrix = Mat4().translate((0.0, 0.0, 1.0))
+
+        self.example_mesh_3 = pyglet.resource.model("robots/panda/meshes/link1.stl", self.batch)
+        self.example_mesh_3.color = (1.0, 1.0, 0.0, 1.0)
+        self.example_mesh_3.matrix = Mat4().translate((0.0, 0.0, 0.5))
+
+        self.axes_example = marsoom.Axes(batch=self.batch)
+        self.axes_example.matrix = Mat4().translate((-1.0, 0.0, 0.0))
+
         sample_image = torch.randn((480, 640, 3), dtype=torch.float32).to(device)
         self.image_viewer.update_image(sample_image)
-
         self.camera_1 = marsoom.CameraWireframeWithImage(
-            z_offset=0.2
+            z_offset=0.2,
+            batch=self.batch
         )
+        self.camera_1.matrix = Mat4().translate((1.0, 0.0, 0.0))
         self.camera_1.update_image(sample_image)
 
 
@@ -68,10 +83,12 @@ class CustomWindow(marsoom.Window):
     def draw(self):
         imgui.begin("3D Drawing")   
         with self.viewer.draw(in_imgui_window=True) as ctx:
-            self.line_renderer.draw(ctx, color=(1, 0, 0))
-            self.point_renderer.draw(ctx, point_size=10)
-            self.example_mesh.draw(ctx)
-            self.camera_1.draw(ctx, line_width=1.0)
+            # self.line_renderer.draw(ctx, color=(1, 0, 0))
+            # self.point_renderer.draw(ctx, point_size=10)
+            # self.example_mesh.draw(ctx)
+
+            self.batch.draw()
+            # self.camera_1.draw()
 
         guizmo.set_id(0)
         self.viewer.manipulate(

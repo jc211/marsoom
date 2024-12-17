@@ -1,7 +1,10 @@
 import ctypes
+from pathlib import Path    
 import math
 import numpy as np
 import torch
+
+ASSET_PATH = Path(__file__).parents[2] / "assets"   
 
 
 PASTEL_COLORS = torch.tensor(

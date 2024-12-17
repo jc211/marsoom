@@ -1,83 +1,30 @@
-import ctypes
 from typing import Tuple
 import numpy as np
 import torch
-import warp as wp
-
-from pyglet.graphics.shader import Shader, ShaderProgram
-from pyglet import gl
+import pyglet
+from pyglet.graphics import Batch, Group
+from pyglet.math import Mat4
 
 from marsoom.viewer_3d import Context3D 
-
 from marsoom.texture import Texture
 from marsoom.image_quad import ImageQuad
 import marsoom.utils
+from marsoom.line_model import LineModel
 
-line_vertex_shader = """
-#version 330 core
-uniform mat4 world2proj;
-uniform mat4 world;
-in vec3 position;
-in vec4 color;
-out vec4 vert_color;
-void main() {
-    gl_Position = world2proj * world * vec4(position, 1.0);
-    vert_color = color;
-}
-"""
-
-line_fragment_shader = """
-#version 330 core
-in vec4 vert_color;
-out vec4 FragColor;
-void main()
-{
-    FragColor = vert_color; 
-}
-"""
-
-
-class CameraWireframeWithImage:
+class CameraWireframe(LineModel):
     def __init__(
         self,
-        z_offset: float = 0.1,
-        width: int = marsoom.utils.DEFAULT_WIDTH,
-        height: int = marsoom.utils.DEFAULT_HEIGHT,
-        K_opengl: np.ndarray = marsoom.utils.DEFAULT_K_OPENGL_T.T.copy(),
-        frame_color: Tuple[float, float, float, float] = (0.2, 0.2, 0.2, 0.1),
-        X_WV: np.ndarray = np.eye(4, dtype=np.float32),
-    ):
-        self.camera_wireframe = CameraWireframe(
-            z_offset=z_offset, K_opengl=K_opengl, frame_color=frame_color
-        )
-        self.texture = Texture(width, height)
-        self.image_quad = ImageQuad(self.camera_wireframe.frame_positions)
-        self.update_position(X_WV)
-
-    def update_image(self, image: torch.Tensor):
-        self.texture.copy_from_device(image)
-
-    def update_position(self, x_wv: np.ndarray):
-        self.image_quad.update_position(x_wv)
-        self.camera_wireframe.update_position(x_wv)
-
-    def draw(
-        self,
-        context: Context3D,
-        line_width: float = 1.0,
-        alpha: float = 1.0,
-    ):
-        self.image_quad.draw(context, self.texture.id, alpha=alpha)
-        self.camera_wireframe.draw(context, line_width=line_width)
-
-
-class CameraWireframe:
-    def __init__(
-        self,
-        K_opengl: np.ndarray = marsoom.utils.DEFAULT_K_OPENGL_T,
+        K_opengl: np.ndarray = marsoom.utils.DEFAULT_K_OPENGL_T.T,
         z_offset: float = 0.1,
         frame_color: Tuple[float, float, float, float] = (0.58, 0.58, 0.58, 0.58),
+        group: pyglet.graphics.Group = None,
+        batch: pyglet.graphics.Batch = None,
     ):
+        self.K_opengl = K_opengl
+        index, positions, colors = self._get_vlist_data(K_opengl, z_offset, frame_color)
+        super().__init__(index, positions, colors, group, batch)
+
+    def _get_vlist_data(self, K_opengl: np.ndarray, z_offset: float, frame_color: Tuple[float, float, float, float]) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:   
         top_left = np.array([-1.0, 1.0, 0.0, 1.0], dtype=np.float32)
         top_right = np.array([1.0, 1.0, 0.0, 1.0], dtype=np.float32)
         bot_left = np.array([-1.0, -1.0, 0.0, 1.0], dtype=np.float32)
@@ -111,12 +58,10 @@ class CameraWireframe:
         width = abs(top_right[0] - top_left[0])
         axis_size = width * 0.1
 
-        self.frame_positions = [
-            *top_left,
-            *top_right,
-            *bot_right,
-            *bot_left,
-        ]
+        self.top_left = top_left
+        self.top_right = top_right
+        self.bot_left = bot_left
+        self.bot_right = bot_right
 
         positions = (
             # positions
@@ -184,24 +129,68 @@ class CameraWireframe:
             8,
             9,
             10,
-        )
-        self.program = ShaderProgram(
-            Shader(line_vertex_shader, "vertex"),
-            Shader(line_fragment_shader, "fragment"),
-        )
-        self.vlist = self.program.vertex_list_indexed(
-            11, gl.GL_LINES, index, position=("f", positions), color=("f", colors)
-        )
-        self.x_wv = np.eye(4, dtype=np.float32)
+        ) 
+        return index, positions, colors
 
-    def update_position(self, x_wv: np.ndarray):
-        self.x_wv = x_wv
+class CameraWireframeWithImage:
+    def __init__(
+        self,
+        z_offset: float = 0.1,
+        width: int = marsoom.utils.DEFAULT_WIDTH,
+        height: int = marsoom.utils.DEFAULT_HEIGHT,
+        K_opengl: np.ndarray = marsoom.utils.DEFAULT_K_OPENGL_T.T.copy(),
+        frame_color: Tuple[float, float, float, float] = (0.2, 0.2, 0.2, 0.1),
+        texture: Texture | None = None,
+        group: Group | None = None,
+        batch: Batch | None = None,
+    ):
+        if batch is None:
+            batch = Batch()
 
-    def draw(self, context: Context3D, line_width: float = 1.0):
+        self.batch = batch
 
-        self.program.use()
-        gl.glLineWidth(line_width)
-        self.program["world2proj"] = context.world2projT
-        self.program["world"] = self.x_wv.T.flatten()
-        self.vlist.draw(gl.GL_LINES)
-        self.program.stop()
+        self.camera_wireframe = CameraWireframe(
+            z_offset=z_offset, K_opengl=K_opengl, frame_color=frame_color,
+            group=group, 
+            batch=batch
+        )
+
+        if texture:
+            self.texture = texture
+        else:
+            self.texture = Texture(width, height)
+
+        self.image_quad = ImageQuad(
+            tex_id=self.texture.id,
+            top_left=self.camera_wireframe.top_left,
+            top_right=self.camera_wireframe.top_right,
+            bot_right=self.camera_wireframe.bot_right,
+            bot_left=self.camera_wireframe.bot_left,
+            group=group,
+            batch=batch
+        )
+
+    
+    @property
+    def matrix(self) -> Mat4:
+        return self.camera_wireframe.matrix
+
+    @matrix.setter
+    def matrix(self, value: Mat4) -> None:
+        self.camera_wireframe.matrix = value
+        self.image_quad.matrix = value
+    
+    @property
+    def alpha(self) -> float:
+        return self.image_quad.alpha
+    
+    @alpha.setter
+    def alpha(self, value: float) -> None:
+        self.image_quad.alpha = value
+
+    def update_image(self, image: torch.Tensor):
+        self.texture.copy_from_device(image)
+
+    def draw(self):
+        self.image_quad.draw()
+        self.camera_wireframe.draw()

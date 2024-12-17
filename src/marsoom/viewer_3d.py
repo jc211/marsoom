@@ -104,10 +104,11 @@ class Viewer3D:
     _frame_speed = 1.0
     _render_new_frame: bool = True
 
-    def __init__(self, show_origin: bool = True):
+    def __init__(self, window, show_origin: bool = True):
         self.create_framebuffers()
         # self._setup_framebuffer()
         self.reset_camera()
+        self.window = window
         self.show_origin = show_origin
         self.origin_renderer = AxisRenderer()
         self.origin_renderer.update(
@@ -518,10 +519,10 @@ class Viewer3D:
         projT = np.asarray(self._projection_matrixT, dtype=np.float32).reshape((4, 4))
         return viewT @ projT  # These are all column major
 
-    def axes(self, name: str, positions: torch.Tensor, quats: torch.Tensor):
+    def draw_axes(self, context: Context3D, positions: torch.Tensor, quats: torch.Tensor):
         renderer = self.axis_renderer
         renderer.update(positions, quats)
-        renderer.draw(self.world2projT().flatten())
+        renderer.draw(context)
 
     def imgui_active(self):
         return (
@@ -555,7 +556,11 @@ class Viewer3D:
         gl.glClearColor(*self.background_color, 1.0)
         self.update_projection_matrix()
         world2projT = self.world2projT().flatten()
+        self.window.window.projection = self._projection_matrixT.flatten()
+        self.window.window.view = self._view_matrix.T.flatten()   
+
         gl.glEnable(gl.GL_DEPTH_TEST)
+        # gl.glEnable(gl.GL_CULL_FACE)
         gl.glDepthFunc(gl.GL_LESS)
         gl.glEnable(gl.GL_BLEND)
         gl.glBlendFunc(gl.GL_SRC_ALPHA, gl.GL_ONE_MINUS_SRC_ALPHA)

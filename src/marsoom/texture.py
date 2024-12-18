@@ -3,6 +3,7 @@ import warp as wp
 import ctypes
 from pyglet import gl
 from pyglet import image
+import numpy as np
 
 
 class Texture:
@@ -58,6 +59,28 @@ class Texture:
             gl.GL_DYNAMIC_DRAW,
         )
         gl.glBindBuffer(gl.GL_PIXEL_UNPACK_BUFFER, 0)
+    
+    def copy_from_host(self, data: np.ndarray):
+        assert data.shape[2] == 3
+        assert data.shape[0] == self.height
+        assert data.shape[1] == self.width
+
+        gl.glActiveTexture(gl.GL_TEXTURE0)
+        gl.glBindTexture(gl.GL_TEXTURE_2D, self.id)
+        gl.glTexSubImage2D(
+            gl.GL_TEXTURE_2D,
+            0,
+            0,
+            0,
+            self.width,
+            self.height,
+            gl.GL_RGB,
+            gl.GL_FLOAT,
+            data.ctypes.data,
+        )
+        gl.glBindTexture(gl.GL_TEXTURE_2D, 0)
+
+
 
     def copy_from_device(self, data: torch.Tensor):
         assert data.shape[2] == 3

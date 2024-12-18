@@ -43,7 +43,7 @@ class CustomWindow(marsoom.Window):
                             [0, 0, 0, 1]], dtype=np.float32)
         self.manip_2d = guizmo.Matrix16(manip_2d.T.flatten())
 
-        self.manip_3d_object = guizmo.Matrix16(np.eye(4).flatten())
+        self.manip_3d_object = np.eye(4, dtype=np.float32)
 
         # sphere_mesh = marsoom.renderers.mesh_renderer.create_sphere_mesh()
         # self.example_mesh = marsoom.MeshRenderer(*sphere_mesh)
@@ -65,14 +65,17 @@ class CustomWindow(marsoom.Window):
         self.axes_example.matrix = Mat4().translate((-1.0, 0.0, 0.0))
 
         sample_image = torch.randn((480, 640, 3), dtype=torch.float32).to(device)
-        self.image_viewer.update_image(sample_image)
+        sample_image_host = sample_image.cpu().numpy()
+        self.image_viewer.update_image(sample_image_host)
         self.camera_1 = marsoom.CameraWireframeWithImage(
             z_offset=0.2,
-            batch=self.batch
+            batch=self.batch,
+            width=640,
+            height=480,
         )
         self.camera_1.matrix = Mat4().translate((1.0, 0.0, 0.0))
-        self.camera_1.update_image(sample_image)
-        # self.circle = marsoom.Circle(1.0, 1.0, 1.0, 0.3, batch=self.batch)
+        self.camera_1.update_image(sample_image_host)
+        self.circle = marsoom.Circle(1.0, 1.0, 1.0, 0.3, batch=self.batch)
         pyglet.gl.glPointSize(10)
         self.point = marsoom.Point(0.5, 0.5, 0.0, color=(255, 0, 0), batch=self.batch)
 
@@ -94,7 +97,7 @@ class CustomWindow(marsoom.Window):
             # self.camera_1.draw()
 
         guizmo.set_id(0)
-        self.viewer.manipulate(
+        self.manip_3d_object = self.viewer.manipulate(
             object_matrix=self.manip_3d_object,
         ) # call after viewer.end so that the image gets drawn
         self.viewer.process_nav()

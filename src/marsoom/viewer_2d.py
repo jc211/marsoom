@@ -120,7 +120,7 @@ class Viewer2D:
 		return projection
 
 	
-	def update_image(self, image: torch.Tensor):
+	def update_image(self, image: torch.Tensor | np.ndarray):
 		"""
 		image: torch.Tensor of shape [H, W, 3] with dtype float32 and range between 0 and 1
 		"""
@@ -129,7 +129,12 @@ class Viewer2D:
 			self.pixels_to_uv[0, 0] = 1.0 / image.shape[1]
 			self.pixels_to_uv[1, 1] = 1.0 / image.shape[0]
 
-		self.image_texture.copy_from_device(image)
+		if isinstance(image, torch.Tensor):
+			self.image_texture.copy_from_device(image)
+		elif isinstance(image, np.ndarray):
+			self.image_texture.copy_from_host(image)
+		else:
+			raise ValueError("Unknown image type")
 
 	def _draw_image(self):
 		tl = imgui.get_cursor_screen_pos()

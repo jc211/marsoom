@@ -396,26 +396,33 @@ class Viewer3D:
         return x_wv
     
     def manipulate(self, 
-				object_matrix: guizmo.Matrix16,
+				object_matrix: np.array,
 				operation: guizmo.OPERATION = guizmo.OPERATION.translate, 
 				mode: guizmo.MODE = guizmo.MODE.local, 
                 ):
+        
         if self.in_imgui_window:
             if self.tl is not None:
                 guizmo.set_drawlist(self.window_draw_list)
                 guizmo.set_rect(self.tl.x, self.tl.y, self.screen_width, self.screen_height)
         else:
             guizmo.set_rect(0, 0, self.screen_width, self.screen_height)
+
         guizmo.allow_axis_flip(False)
         proj_matrix = guizmo.Matrix16(self.gl_projectionT().flatten())
         view_matrix = guizmo.Matrix16(self._view_matrix.flatten())
-        return guizmo.manipulate(
+
+        object_matrix = guizmo.Matrix16(object_matrix.T.flatten())
+
+        guizmo.manipulate(
             view=view_matrix,
             projection=proj_matrix,
             operation=operation,
             mode=mode,
             object_matrix=object_matrix,
         )
+        res_matrix = np.array(object_matrix.values).reshape((4, 4)).T
+        return res_matrix
 
     def reset_camera(self):
         self._camera_pos = PyVec3(0.0, -2.0, 0.4)
@@ -461,7 +468,7 @@ class Viewer3D:
             self.update_view_matrix()
 
     def process_mouse(self):
-        if guizmo.is_over():
+        if guizmo.is_using_any():
             return
         io = imgui.get_io()
         dx=io.mouse_delta.x

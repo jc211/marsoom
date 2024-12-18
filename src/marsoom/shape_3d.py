@@ -34,16 +34,6 @@ vertex_source = """#version 150 core
     void main()
     {
         mat4 view = window.view;
-        view[0][0] = 1;
-        view[0][1] = 0;
-        view[0][2] = 0;
-        view[1][0] = 0;
-        view[1][1] = 1;
-        view[1][2] = 0;
-        view[2][0] = 0;
-        view[2][1] = 0;
-        view[2][2] = 1;
-
         m_translate[3][0] = translation.x;
         m_translate[3][1] = translation.y;
         m_translate[3][2] = translation.z;
@@ -52,6 +42,8 @@ vertex_source = """#version 150 core
         m_rotation[0][1] =  sin(-radians(rotation));
         m_rotation[1][0] = -sin(-radians(rotation));
         m_rotation[1][1] =  cos(-radians(rotation));
+
+
 
         gl_Position = window.projection * view * m_translate * m_rotation * vec4(position, 0.0, 1.0);
         vertex_colors = colors;

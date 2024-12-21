@@ -119,7 +119,11 @@ class Viewer2D:
 			], dtype=np.float32) @ projection
 		return projection
 
-	
+	def set_texture(self, texture: Texture):
+		self.image_texture = texture
+		self.pixels_to_uv[0, 0] = 1.0 / texture.width
+		self.pixels_to_uv[1, 1] = 1.0 / texture.height
+		
 	def update_image(self, image: torch.Tensor | np.ndarray):
 		"""
 		image: torch.Tensor of shape [H, W, 3] with dtype float32 and range between 0 and 1

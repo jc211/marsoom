@@ -48,7 +48,7 @@ class Texture:
         return self.tex.height
     
     @property
-    def aspect(self)
+    def aspect(self):
         return self.width / self.height
 
     def resize(self, width: int, height: int):

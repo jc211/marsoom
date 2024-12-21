@@ -46,6 +46,10 @@ class Texture:
     @property
     def height(self):
         return self.tex.height
+    
+    @property
+    def aspect(self)
+        return self.width / self.height
 
     def resize(self, width: int, height: int):
         del self.tex
@@ -62,8 +66,11 @@ class Texture:
     
     def copy_from_host(self, data: np.ndarray):
         assert data.shape[2] == 3
-        assert data.shape[0] == self.height
-        assert data.shape[1] == self.width
+        assert data.dtype == np.float32
+        w = data.shape[1]
+        h = data.shape[0]
+        if w != self.width or h != self.height:
+            self.resize(w, h)
 
         gl.glActiveTexture(gl.GL_TEXTURE0)
         gl.glBindTexture(gl.GL_TEXTURE_2D, self.id)

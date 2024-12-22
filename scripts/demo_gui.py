@@ -61,6 +61,15 @@ class CustomWindow(marsoom.Window):
         _, self.viewer.orthogonal = imgui.checkbox("Orthogonal", self.viewer.orthogonal)
         _, self.viewer.fl_x = imgui.input_float("Focal Length X", self.viewer.fl_x)
         _, self.viewer.fl_y = imgui.input_float("Focal Length Y", self.viewer.fl_y)
+        if imgui.button("Top View"):
+            self.viewer.top_view()
+        if imgui.button("Front View"):
+            self.viewer.front_view()
+        if imgui.button("Side View"):
+            self.viewer.right_view()
+        if imgui.button("Reset View"):
+            self.viewer.reset_view()
+
         imgui.end()
 
 

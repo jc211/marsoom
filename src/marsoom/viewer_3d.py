@@ -435,6 +435,59 @@ class Viewer3D:
         self._render_new_frame = True
         self.update_view_matrix()
         self.update_projection_matrix()
+    
+    def top_view(self):
+        self.orthogonal = True
+        self._camera_pos = PyVec3(0.0, 0.0, 2.0)
+        self._camera_front = PyVec3(0.0, 0.0, -1.0)
+        self._camera_up = PyVec3(0.0, 1.0, 0.0)
+        self.update_view_matrix()
+        self.update_projection_matrix()
+    
+    def bottom_view(self):
+        self.orthogonal = True
+        self._camera_pos = PyVec3(0.0, 0.0, -2.0)
+        self._camera_front = PyVec3(0.0, 0.0, 1.0)
+        self._camera_up = PyVec3(0.0, 1.0, 0.0)
+        self.update_view_matrix()
+        self.update_projection_matrix()
+    
+    def front_view(self):
+        self.orthogonal = True
+        self._camera_pos = PyVec3(0.0, 2.0, 0.0)
+        self._camera_front = PyVec3(0.0, -1.0, 0.0)
+        self._camera_up = PyVec3(0.0, 0.0, 1.0)
+        self.update_view_matrix()
+        self.update_projection_matrix()
+
+    def back_view(self):
+        self.orthogonal = True
+        self._camera_pos = PyVec3(0.0, -2.0, 0.0)
+        self._camera_front = PyVec3(0.0, 1.0, 0.0)
+        self._camera_up = PyVec3(0.0, 0.0, 1.0)
+        self.update_view_matrix()
+        self.update_projection_matrix()
+
+    def right_view(self):
+        self.orthogonal = True
+        self._camera_pos = PyVec3(2.0, 0.0, 0.0)
+        self._camera_front = PyVec3(-1.0, 0.0, 0.0)
+        self._camera_up = PyVec3(0.0, 0.0, 1.0)
+        self.update_view_matrix()
+        self.update_projection_matrix()
+
+    def left_view(self):
+        self.orthogonal = True
+        self._camera_pos = PyVec3(-2.0, 0.0, 0.0)
+        self._camera_front = PyVec3(1.0, 0.0, 0.0)
+        self._camera_up = PyVec3(0.0, 0.0, 1.0)
+        self.update_view_matrix()
+        self.update_projection_matrix()
+    
+    def reset_view(self):
+        self.orthogonal = False
+        self.reset_camera()
+    
 
     def process_nav(self):
         if self.in_imgui_window:
@@ -448,22 +501,16 @@ class Viewer3D:
             imgui.is_key_down(imgui.Key.w)
             or imgui.is_key_down(imgui.Key.up_arrow)
         ):
-            if self.orthogonal:
-                self.ortho_zoom *= 1.1
-                self.update_projection_matrix()
-            else:
-                self._camera_pos += self._camera_front * (self._camera_speed)
-                self.update_view_matrix()
+            self.orthogonal = False
+            self._camera_pos += self._camera_front * (self._camera_speed)
+            self.update_view_matrix()
         if (
             imgui.is_key_down(imgui.Key.s)
             or imgui.is_key_down(imgui.Key.down_arrow)
         ):
-            if self.orthogonal:
-                self.ortho_zoom *= 0.9
-                self.update_projection_matrix()
-            else:
-                self._camera_pos -= self._camera_front * (self._camera_speed)
-                self.update_view_matrix()
+            self.orthogonal = False
+            self._camera_pos -= self._camera_front * (self._camera_speed)
+            self.update_view_matrix()
         if (
             imgui.is_key_down(imgui.Key.a)
             or imgui.is_key_down(imgui.Key.left_arrow)
@@ -514,6 +561,7 @@ class Viewer3D:
 
             # orbit camera
             from scipy.spatial.transform import Rotation as R
+            self.orthogonal = False
 
             r = R.from_euler("xyz", [dy, -dx, 0], degrees=True)
             r_vw = np.array(self._view_matrix).reshape((4, 4)).T[:3, :3]
@@ -528,10 +576,16 @@ class Viewer3D:
             sensitivity = 1
             if shift:
                 sensitivity = 10
-            self.fl_x += scroll * sensitivity
-            self.fl_y += scroll * sensitivity
-            self.fl_x = max(1.0, self.fl_x)
-            self.fl_y = max(1.0, self.fl_y)
+            if self.orthogonal:
+                sensitivity = 0.1
+                self.ortho_zoom *= 1.0 + scroll * sensitivity
+                self.ortho_zoom = max(1.0, self.ortho_zoom)
+                self.update_projection_matrix()
+            else:
+                self.fl_x += scroll * sensitivity
+                self.fl_y += scroll * sensitivity
+                self.fl_x = max(1.0, self.fl_x)
+                self.fl_y = max(1.0, self.fl_y)
 
     def world2projT(self):
         viewT = np.asarray(self._view_matrix, dtype=np.float32).reshape((4, 4))

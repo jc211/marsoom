@@ -8,15 +8,17 @@ from contextlib import contextmanager
 import numpy as np
 import torch
 
+import pyglet
 from pyglet import gl
 from pyglet.graphics.shader import Shader, ShaderProgram
 from pyglet.math import Vec3 as PyVec3
 from pyglet.math import Mat4 as PyMat4
 from imgui_bundle import imgui, ImVec2
 
-from marsoom.renderers.axis_renderer import AxisRenderer
 from marsoom.context_3d import Context3D
-from marsoom.utils import calibration_matrix_values, convert_K_to_projection_matrixT, str_buffer
+from marsoom.utils import calibration_matrix_values, convert_K_to_projection_matrixT, str_buffer, ortho_matrix_T
+from marsoom.axes import Axes
+
 
 from imgui_bundle import imguizmo
 guizmo = imguizmo.im_guizmo
@@ -90,6 +92,7 @@ class Viewer3D:
     screen_height: int = 0
     fl_x: float = 500.0
     fl_y: float = 500.0
+    ortho_zoom: float = 1.0
     screen_center_x: float = 0.5
     screen_center_y: float = 0.5
     background_color: Tuple[float, float, float] = (0.86, 0.86, 0.86)
@@ -104,21 +107,19 @@ class Viewer3D:
     _frame_speed = 1.0
     _render_new_frame: bool = True
 
+    orthogonal: bool = False
+
     def __init__(self, window, show_origin: bool = True):
         self.create_framebuffers()
         # self._setup_framebuffer()
         self.reset_camera()
         self.window = window
         self.show_origin = show_origin
-        self.origin_renderer = AxisRenderer()
-        self.origin_renderer.update(
-            positions=torch.tensor([[0.0, 0.0, 0.0]]).cuda(),
-            quats=torch.tensor([[0.0, 0.0, 0.0, 1.0]]).cuda(),
-        )
-        self.axis_renderer = AxisRenderer()
         self.in_imgui_window = False
         self.window_draw_list = None
         self.tl = None
+        self._batch = pyglet.graphics.Batch()
+        self._origin = Axes(batch=self._batch)
 
 
     def create_framebuffers(self):
@@ -360,9 +361,12 @@ class Viewer3D:
         self.fov_y = fov_y * np.pi / 180.0
 
     def gl_projectionT(self) -> np.ndarray:
-        return convert_K_to_projection_matrixT(
-            self.K(), self.screen_width, self.screen_height
-        )    
+        if self.orthogonal:
+            return ortho_matrix_T(self.ortho_zoom, self.screen_width, self.screen_height)
+        else:
+            return convert_K_to_projection_matrixT(
+                self.K(), self.screen_width, self.screen_height
+            )    
 
     def gl_projection_from_world(self) -> np.ndarray:
         x_vw = self.x_vw()
@@ -381,7 +385,7 @@ class Viewer3D:
             ],
             dtype=np.float32,
         )
-
+    
     @property
     def aspect(self) -> float:
         return self.screen_width / self.screen_height
@@ -444,14 +448,22 @@ class Viewer3D:
             imgui.is_key_down(imgui.Key.w)
             or imgui.is_key_down(imgui.Key.up_arrow)
         ):
-            self._camera_pos += self._camera_front * (self._camera_speed)
-            self.update_view_matrix()
+            if self.orthogonal:
+                self.ortho_zoom *= 1.1
+                self.update_projection_matrix()
+            else:
+                self._camera_pos += self._camera_front * (self._camera_speed)
+                self.update_view_matrix()
         if (
             imgui.is_key_down(imgui.Key.s)
             or imgui.is_key_down(imgui.Key.down_arrow)
         ):
-            self._camera_pos -= self._camera_front * (self._camera_speed)
-            self.update_view_matrix()
+            if self.orthogonal:
+                self.ortho_zoom *= 0.9
+                self.update_projection_matrix()
+            else:
+                self._camera_pos -= self._camera_front * (self._camera_speed)
+                self.update_view_matrix()
         if (
             imgui.is_key_down(imgui.Key.a)
             or imgui.is_key_down(imgui.Key.left_arrow)
@@ -513,9 +525,9 @@ class Viewer3D:
             self.update_view_matrix()
 
         if scroll:
-            sensitivity = 10
+            sensitivity = 1
             if shift:
-                sensitivity = 100
+                sensitivity = 10
             self.fl_x += scroll * sensitivity
             self.fl_y += scroll * sensitivity
             self.fl_x = max(1.0, self.fl_x)
@@ -525,11 +537,6 @@ class Viewer3D:
         viewT = np.asarray(self._view_matrix, dtype=np.float32).reshape((4, 4))
         projT = np.asarray(self._projection_matrixT, dtype=np.float32).reshape((4, 4))
         return viewT @ projT  # These are all column major
-
-    def draw_axes(self, context: Context3D, positions: torch.Tensor, quats: torch.Tensor):
-        renderer = self.axis_renderer
-        renderer.update(positions, quats)
-        renderer.draw(context)
 
     def imgui_active(self):
         return (
@@ -578,13 +585,8 @@ class Viewer3D:
             camera_positon=self._camera_pos
         )
 
-        if self.show_origin:
-            self.origin_renderer.draw(
-                context=context,
-                line_width=self.line_width,
-                scale=0.1,
-            )
 
+        self._batch.draw()
         yield context
     
         if self.screen_width == 0 or self.screen_height == 0:

@@ -2,13 +2,11 @@ import ctypes
 from pathlib import Path    
 import math
 import numpy as np
-import torch
 
 ASSET_PATH = Path(__file__).parents[2] / "assets"   
 
 
-PASTEL_COLORS = torch.tensor(
-    [
+PASTEL_COLORS = [
         [0.984375, 0.7265625, 0.0703125],
         [0.7265625, 0.23046875, 0.23046875],
         [0.23046875, 0.7265625, 0.23046875],
@@ -17,21 +15,41 @@ PASTEL_COLORS = torch.tensor(
         [0.23046875, 0.7265625, 0.7265625],
         [0.7265625, 0.7265625, 0.23046875],
         [0.7265625, 0.7265625, 0.7265625],
-    ]
-).cuda()
+]
 
 COLORS = {
-    "BLUE": torch.tensor([0.0, 0.5843, 1.0]),
-    "YELLOW": torch.tensor([1.0, 0.8, 0.0]),
-    "RED": torch.tensor([0.835, 0.368, 0.0]),
-    "GREEN": torch.tensor([0.008, 0.6186, 0.45098]),
-    "PURPLE": torch.tensor([0.51372, 0.298, 0.49012]),
-    "ORANGE": torch.tensor([1.0, 0.4, 0.0]),
+    "BLUE": [0.0, 0.5843, 1.0],
+    "YELLOW": [1.0, 0.8, 0.0],
+    "RED": [0.835, 0.368, 0.0],
+    "GREEN": [0.008, 0.6186, 0.45098],
+    "PURPLE": [0.51372, 0.298, 0.49012],
+    "ORANGE": [1.0, 0.4, 0.0],
 }
 
 
 def str_buffer(string: str):
     return ctypes.c_char_p(string.encode("utf-8"))
+
+def ortho_matrix_T(
+    zoom: float, width: int, height: int, near: float = 0.01, far: float = 10.0, orthogonal: bool = False
+) -> np.ndarray:
+    u0 = width / 2.0
+    v0 = height / 2.0
+    l = -u0 * near / zoom
+    r = (width - u0) * near / zoom
+    b = -(height - v0) * near / zoom
+    t = v0 * near / zoom
+
+    return np.array(
+        [
+            [2 / (r - l), 0, 0, -(r + l) / (r - l)],
+            [0, 2 / (t - b), 0, -(t + b) / (t - b)],
+            [0, 0, -2 / (far - near), -(far + near) / (far - near)],
+            [0, 0, 0, 1],
+        ],
+        dtype=np.float32,
+    ).T
+
 
 def convert_K_to_projection_matrixT(
     K: np.ndarray, width: int, height: int, near: float = 0.01, far: float = 10.0

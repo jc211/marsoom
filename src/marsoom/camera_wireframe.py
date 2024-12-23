@@ -10,6 +10,7 @@ from marsoom.texture import Texture
 from marsoom.image_quad import ImageQuad
 import marsoom.utils
 from marsoom.line_model import LineModel
+from marsoom.utils import convert_K_to_projection_matrixT
 
 class CameraWireframe(LineModel):
     def __init__(
@@ -213,6 +214,10 @@ class CameraWireframeWithImage:
     @alpha.setter
     def alpha(self, value: float) -> None:
         self.image_quad.alpha = value
+    
+    def update_K(self, K: np.ndarray):
+        K_opengl = convert_K_to_projection_matrixT(K).T.copy()
+        self.update_K_opengl(K_opengl)
     
     def update_K_opengl(self, K_opengl: np.ndarray):
         self.camera_wireframe.update_K_opengl(K_opengl)

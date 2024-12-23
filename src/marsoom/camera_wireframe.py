@@ -72,10 +72,10 @@ class CameraWireframe(LineModel):
         width = abs(top_right[0] - top_left[0])
         axis_size = width * 0.1
 
-        self.top_left = top_left
-        self.top_right = top_right
-        self.bot_left = bot_left
-        self.bot_right = bot_right
+        self.top_left = top_left.tolist()
+        self.top_right = top_right.tolist()
+        self.bot_left = bot_left.tolist()
+        self.bot_right = bot_right.tolist()
 
         positions = (
             # positions

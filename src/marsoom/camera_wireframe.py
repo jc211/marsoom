@@ -170,6 +170,7 @@ class CameraWireframeWithImage:
         height: int = marsoom.utils.DEFAULT_HEIGHT,
         K_opengl: np.ndarray = marsoom.utils.DEFAULT_K_OPENGL_T.T.copy(),
         frame_color: Tuple[float, float, float, float] = (0.2, 0.2, 0.2, 0.1),
+        alpha: float = 1.0,
         texture: Texture | None = None,
         group: Group | None = None,
         batch: Batch | None = None,
@@ -217,6 +218,9 @@ class CameraWireframeWithImage:
     @alpha.setter
     def alpha(self, value: float) -> None:
         self.image_quad.alpha = value
+    
+    def set_alpha(self, alpha: float):
+        self.image_quad.alpha = alpha
     
     def set_texture_id(self, tex_id: int):
         if self.image_quad.tex_id == tex_id:

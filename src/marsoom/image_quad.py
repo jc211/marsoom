@@ -85,6 +85,7 @@ class ImageQuad:
                  top_right: tuple[float, float, float],
                  bot_right: tuple[float, float, float],
                  bot_left: tuple[float, float, float],
+                 alpha: float = 1.0,
                  group: Group | None = None,
                  batch: Batch | None = None) -> None:
         
@@ -118,7 +119,7 @@ class ImageQuad:
             4, gl.GL_TRIANGLES, index, position=("f", self._get_vertices()), tex=("f", tex), batch=self.batch, group=mat_group
         )
         self._matrix = Mat4()   
-        self._alpha = 1.0
+        self._alpha = alpha
         self._tex_id = tex_id
         self.groups = [mat_group]
     

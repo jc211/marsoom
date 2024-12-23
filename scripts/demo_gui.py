@@ -7,6 +7,8 @@ import marsoom
 from marsoom import imgui, guizmo
 import pyglet
 
+import marsoom.grid
+
 
 SCRIPT_PATH = Path(__file__).parent
 
@@ -25,10 +27,12 @@ class CustomWindow(marsoom.Window):
                             [0, 0, 0, 1]], dtype=np.float32)
         self.manip_2d = guizmo.Matrix16(manip_2d.T.flatten())
 
+
         self.manip_3d_object = np.eye(4, dtype=np.float32)
 
 
         self.batch = pyglet.graphics.Batch()
+        self.grid = marsoom.grid.Grid(grid_spacing=0.1, grid_count=10, batch=self.batch)
 
         points = np.random.randn(100, 3).astype(np.float32)
         colors = np.random.rand(100, 3).astype(np.float32)

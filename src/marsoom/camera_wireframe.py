@@ -218,6 +218,11 @@ class CameraWireframeWithImage:
     def alpha(self, value: float) -> None:
         self.image_quad.alpha = value
     
+    def set_texture_id(self, tex_id: int):
+        if self.image_quad.tex_id == tex_id:
+            return
+        self.image_quad.tex_id = tex_id
+    
     def update_K(self, K: np.ndarray, width: int, height: int):
         K_opengl = convert_K_to_projection_matrixT(K, width, height).T.copy()
         self.update_K_opengl(K_opengl)

@@ -197,6 +197,7 @@ class CameraWireframeWithImage:
             top_right=self.camera_wireframe.top_right,
             bot_right=self.camera_wireframe.bot_right,
             bot_left=self.camera_wireframe.bot_left,
+            alpha=alpha,
             group=group,
             batch=batch
         )

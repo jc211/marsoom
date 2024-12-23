@@ -48,7 +48,7 @@ def ortho_matrix_T(
             [0, 0, 0, 1],
         ],
         dtype=np.float32,
-    ).T
+    )
 
 
 def convert_K_to_projection_matrixT(

@@ -213,6 +213,23 @@ class CameraWireframeWithImage:
     @alpha.setter
     def alpha(self, value: float) -> None:
         self.image_quad.alpha = value
+    
+    def update_K_opengl(self, K_opengl: np.ndarray):
+        self.camera_wireframe.update_K_opengl(K_opengl)
+        self.image_quad.update(top_left=self.camera_wireframe.top_left,
+                               top_right=self.camera_wireframe.top_right,
+                               bot_right=self.camera_wireframe.bot_right,
+                               bot_left=self.camera_wireframe.bot_left)
+    
+    def update_z_offset(self, z_offset: float):
+        self.camera_wireframe.update_z_offset(z_offset)
+        self.image_quad.update(top_left=self.camera_wireframe.top_left,
+                               top_right=self.camera_wireframe.top_right,
+                               bot_right=self.camera_wireframe.bot_right,
+                               bot_left=self.camera_wireframe.bot_left)
+    
+    def update_frame_color(self, frame_color: Tuple[float, float, float, float]):
+        self.camera_wireframe.update_frame_color(frame_color)
 
     def update_image(self, image: torch.Tensor | np.ndarray):
         assert image.shape[0] == self.texture.height
@@ -221,7 +238,3 @@ class CameraWireframeWithImage:
             self.texture.copy_from_device(image)
         elif isinstance(image, np.ndarray):
             self.texture.copy_from_host(image)
-
-    def draw(self):
-        self.image_quad.draw()
-        self.camera_wireframe.draw()

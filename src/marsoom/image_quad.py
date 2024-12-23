@@ -119,8 +119,8 @@ class ImageQuad:
             4, gl.GL_TRIANGLES, index, position=("f", self._get_vertices()), tex=("f", tex), batch=self.batch, group=mat_group
         )
         self._matrix = Mat4()   
-        self._alpha = alpha
-        self._tex_id = tex_id
+        self.alpha = alpha
+        self.tex_id = tex_id
         self.groups = [mat_group]
     
     def _get_vertices(self):

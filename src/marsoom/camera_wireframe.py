@@ -30,18 +30,21 @@ class CameraWireframe(LineModel):
         if np.allclose(self.K_opengl, K_opengl):
             return
         self.K_opengl = K_opengl
+        self.position = self._get_vertices()
         self._update_vertices()
     
     def update_z_offset(self, z_offset: float):
         if self.z_offset == z_offset:
             return
         self.z_offset = z_offset
+        self.position = self._get_vertices()
         self._update_vertices()
     
     def update_frame_color(self, frame_color: Tuple[float, float, float, float]):
         if self.frame_color == frame_color:
             return
         self.frame_color = frame_color
+        self.colors = self._get_colors()
         self._update_colors()
     
     def _get_vertices(self):

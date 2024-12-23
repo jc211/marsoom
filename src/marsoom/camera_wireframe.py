@@ -215,8 +215,8 @@ class CameraWireframeWithImage:
     def alpha(self, value: float) -> None:
         self.image_quad.alpha = value
     
-    def update_K(self, K: np.ndarray):
-        K_opengl = convert_K_to_projection_matrixT(K).T.copy()
+    def update_K(self, K: np.ndarray, width: int, height: int):
+        K_opengl = convert_K_to_projection_matrixT(K, width, height).T.copy()
         self.update_K_opengl(K_opengl)
     
     def update_K_opengl(self, K_opengl: np.ndarray):

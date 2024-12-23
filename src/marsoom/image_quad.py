@@ -65,7 +65,8 @@ class ImageQuadGroup(Group):
         gl.glBindTexture(gl.GL_TEXTURE_2D, self.tex_id)
     
     def __hash__(self) -> int:
-        return hash((self.program, self.order, self.parent, self.tex_id, self.alpha))
+        # return hash((self.program, self.order, self.parent, self.tex_id, self.alpha))
+        return hash((self.program, self.order, self.parent))
 
     def __eq__(self, other) -> bool:
         return (self.__class__ is other.__class__ and

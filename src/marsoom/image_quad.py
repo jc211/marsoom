@@ -90,16 +90,14 @@ class ImageQuad:
         if batch is None:
             batch = Batch()
 
+        self.top_left = top_left
+        self.top_right = top_right
+        self.bot_right = bot_right
+        self.bot_left = bot_left
+
         self.batch = batch
         self.group = group
         
-        positions = np.array([
-            *top_left,
-            *top_right,
-            *bot_right,
-            *bot_left,
-        ], dtype=np.float32)
-
         tex = np.array(
             [
                 0.0,
@@ -116,12 +114,32 @@ class ImageQuad:
         self.program = get_default_shader()
         mat_group = ImageQuadGroup(tex_id, self.program, parent=self.group)  
         self.vlist = self.program.vertex_list_indexed(
-            4, gl.GL_TRIANGLES, index, position=("f", positions), tex=("f", tex), batch=self.batch, group=mat_group
+            4, gl.GL_TRIANGLES, index, position=("f", self._get_vertices()), tex=("f", tex), batch=self.batch, group=mat_group
         )
         self._matrix = Mat4()   
         self._alpha = 1.0
         self._tex_id = tex_id
         self.groups = [mat_group]
+    
+    def _get_vertices(self):
+        return np.array([
+            *self.top_left,
+            *self.top_right,
+            *self.bot_right,
+            *self.bot_left,
+        ], dtype=np.float32)
+    
+    def _update_vertices(self):
+        self.vlist.position[:] = self._get_vertices()
+    
+    def update(self, top_left: tuple[float, float, float], top_right: tuple[float, float, float], bot_right: tuple[float, float, float], bot_left: tuple[float, float, float]) -> None:
+        if self.top_left == top_left and self.top_right == top_right and self.bot_right == bot_right and self.bot_left == bot_left:
+            return
+        self.top_left = top_left
+        self.top_right = top_right
+        self.bot_right = bot_right
+        self.bot_left = bot_left
+        self._update_vertices()
     
     @property
     def matrix(self) -> Mat4:
@@ -152,8 +170,3 @@ class ImageQuad:
         self._alpha = value
         for group in self.groups:
             group.alpha = value
-
-    def draw(self):
-        self.groups[0].set_state()
-        self.vlist.draw(gl.GL_TRIANGLES)
-        self.groups[0].unset_state()

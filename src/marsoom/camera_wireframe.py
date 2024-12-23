@@ -21,10 +21,32 @@ class CameraWireframe(LineModel):
         batch: pyglet.graphics.Batch = None,
     ):
         self.K_opengl = K_opengl
-        index, positions, colors = self._get_vlist_data(K_opengl, z_offset, frame_color)
-        super().__init__(index, positions, colors, group, batch)
+        self.z_offset = z_offset
+        self.frame_color = frame_color  
+        super().__init__(self._get_indices(), self._get_vertices(), self._get_colors(), group, batch)
+    
+    def update_K_opengl(self, K_opengl: np.ndarray):
+        if np.allclose(self.K_opengl, K_opengl):
+            return
+        self.K_opengl = K_opengl
+        self._update_vertices()
+    
+    def update_z_offset(self, z_offset: float):
+        if self.z_offset == z_offset:
+            return
+        self.z_offset = z_offset
+        self._update_vertices()
+    
+    def update_frame_color(self, frame_color: Tuple[float, float, float, float]):
+        if self.frame_color == frame_color:
+            return
+        self.frame_color = frame_color
+        self._update_colors()
+    
+    def _get_vertices(self):
+        K_opengl = self.K_opengl
+        z_offset = self.z_offset
 
-    def _get_vlist_data(self, K_opengl: np.ndarray, z_offset: float, frame_color: Tuple[float, float, float, float]) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:   
         top_left = np.array([-1.0, 1.0, 0.0, 1.0], dtype=np.float32)
         top_right = np.array([1.0, 1.0, 0.0, 1.0], dtype=np.float32)
         bot_left = np.array([-1.0, -1.0, 0.0, 1.0], dtype=np.float32)
@@ -36,7 +58,6 @@ class CameraWireframe(LineModel):
         bot_left = Kinv @ bot_left
         bot_right = Kinv @ bot_right
 
-
         top_left = top_left[:3] / top_left[3] 
         top_right = top_right[:3] / top_right[3] 
         bot_left = bot_left[:3] / bot_left[3]  
@@ -46,14 +67,6 @@ class CameraWireframe(LineModel):
         top_right = top_right / np.linalg.norm(top_right) * z_offset
         bot_left = bot_left / np.linalg.norm(bot_left) * z_offset
         bot_right = bot_right / np.linalg.norm(bot_right) * z_offset
-
-        frame_color = np.array(frame_color, dtype=np.float32)
-        red = np.array(marsoom.utils.COLORS["RED"], dtype=np.float32)
-        green = np.array(marsoom.utils.COLORS["GREEN"], dtype=np.float32)
-        blue = np.array(marsoom.utils.COLORS["BLUE"], dtype=np.float32)
-        x_axis_color = np.array([red[0], red[1], red[2], 1.0], dtype=np.float32)
-        y_axis_color = np.array([green[0], green[1], green[2], 1.0], dtype=np.float32)
-        z_axis_color = np.array([blue[0], blue[1], blue[2], 1.0], dtype=np.float32)
 
         width = abs(top_right[0] - top_left[0])
         axis_size = width * 0.1
@@ -93,18 +106,9 @@ class CameraWireframe(LineModel):
             axis_size,
         )
 
-        colors = np.stack(
-            [frame_color] * 5
-            + [
-                x_axis_color,
-                x_axis_color,
-                y_axis_color,
-                y_axis_color,
-                z_axis_color,
-                z_axis_color,
-            ],
-        ).flatten()
-
+        return positions
+    
+    def _get_indices(self):
         index = (
             0,
             1,
@@ -130,7 +134,29 @@ class CameraWireframe(LineModel):
             9,
             10,
         ) 
-        return index, positions, colors
+        return index
+    
+    def _get_colors(self):
+        frame_color = self.frame_color
+        frame_color = np.array(frame_color, dtype=np.float32)
+        red = np.array(marsoom.utils.COLORS["RED"], dtype=np.float32)
+        green = np.array(marsoom.utils.COLORS["GREEN"], dtype=np.float32)
+        blue = np.array(marsoom.utils.COLORS["BLUE"], dtype=np.float32)
+        x_axis_color = np.array([red[0], red[1], red[2], 1.0], dtype=np.float32)
+        y_axis_color = np.array([green[0], green[1], green[2], 1.0], dtype=np.float32)
+        z_axis_color = np.array([blue[0], blue[1], blue[2], 1.0], dtype=np.float32)
+        colors = np.stack(
+            [frame_color] * 5
+            + [
+                x_axis_color,
+                x_axis_color,
+                y_axis_color,
+                y_axis_color,
+                z_axis_color,
+                z_axis_color,
+            ],
+        ).flatten()
+        return colors   
 
 class CameraWireframeWithImage:
     def __init__(

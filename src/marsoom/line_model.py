@@ -83,12 +83,20 @@ class LineModel:
         self.group = group
         self.program = get_default_shader()
         mat_group = LineGroup(self.program, parent=self.group)
+        self.position = positions
+        self.colors = colors
         self.vlist = self.program.vertex_list_indexed(
             len(positions)//3, gl.GL_LINES, index, position=("f", positions), color=("f", colors),
             batch=self.batch, group=mat_group
         )
         self.groups = [mat_group]
         self._matrix = Mat4()
+    
+    def _update_vertices(self):
+        self.vlist.position[:] = self.position
+    
+    def _update_colors(self):
+        self.vlist.colors[:] = self.colors
     
     @property
     def matrix(self) -> Mat4:

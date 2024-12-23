@@ -107,6 +107,8 @@ class Viewer3D:
     _frame_speed = 1.0
     _render_new_frame: bool = True
 
+    zoom_sensitivity: float = 0.1
+
     orthogonal: bool = False
 
     def __init__(self, window, show_origin: bool = True):
@@ -573,9 +575,9 @@ class Viewer3D:
             self.update_view_matrix()
 
         if scroll:
-            sensitivity = 1
+            sensitivity = self.zoom_sensitivity
             if shift:
-                sensitivity = 10
+                sensitivity = 10*sensitivity
             if self.orthogonal:
                 sensitivity = 0.1
                 self.ortho_zoom *= 1.0 + scroll * sensitivity

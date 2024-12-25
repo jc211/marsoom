@@ -1,9 +1,10 @@
-import torch
-import warp as wp
 import ctypes
-from pyglet import gl
-from pyglet import image
+
 import numpy as np
+
+# import torch
+# import warp as wp
+from pyglet import gl, image
 
 
 class Texture:
@@ -22,12 +23,13 @@ class Texture:
             None,
             gl.GL_DYNAMIC_DRAW,
         )
-        self.cuda_pbo = wp.RegisteredGLBuffer(
-            int(self.pbo.value),
-            wp.get_cuda_device(),
-            flags=wp.RegisteredGLBuffer.WRITE_DISCARD,
-        )
-        self.copy_from_device(torch.zeros((height, width, dim), dtype=torch.float32))
+        self._pbo_to_texture()
+        # self.cuda_pbo = wp.RegisteredGLBuffer(
+        #     int(self.pbo.value),
+        #     wp.get_cuda_device(),
+        #     flags=wp.RegisteredGLBuffer.WRITE_DISCARD,
+        # )
+        # self.copy_from_device(torch.zeros((height, width, dim), dtype=torch.float32))
 
     def __del__(self):
         try:
@@ -46,7 +48,7 @@ class Texture:
     @property
     def height(self):
         return self.tex.height
-    
+
     @property
     def aspect(self):
         return self.width / self.height
@@ -63,7 +65,7 @@ class Texture:
             gl.GL_DYNAMIC_DRAW,
         )
         gl.glBindBuffer(gl.GL_PIXEL_UNPACK_BUFFER, 0)
-    
+
     def copy_from_host(self, data: np.ndarray):
         assert data.shape[2] == 3
         assert data.dtype == np.float32
@@ -87,29 +89,32 @@ class Texture:
         )
         gl.glBindTexture(gl.GL_TEXTURE_2D, 0)
 
-
-
-    def copy_from_device(self, data: torch.Tensor):
-        assert data.shape[2] == 3
-        w = data.shape[1]
-        h = data.shape[0]
-        if w != self.width or h != self.height:
-            self.resize(w, h)
-        image = self.cuda_pbo.map(
-            dtype=wp.float32, shape=(self.height * self.width * self.dim,)
-        )
-        image_torch = wp.to_torch(image)
-        image_torch.copy_(data.flatten())
-        self.cuda_pbo.unmap()
-        self._pbo_to_texture()
+    # def copy_from_device(self, data: torch.Tensor):
+    #     raise NotImplementedType()
+    # assert data.shape[2] == 3
+    # w = data.shape[1]
+    # h = data.shape[0]
+    # if w != self.width or h != self.height:
+    #     self.resize(w, h)
+    # image = self.cuda_pbo.map(
+    #     dtype=wp.float32, shape=(self.height * self.width * self.dim,)
+    # )
+    # image_torch = wp.to_torch(image)
+    # image_torch.copy_(data.flatten())
+    # self.cuda_pbo.unmap()
+    # self._pbo_to_texture()
 
     def _pbo_to_texture(self):
         # Copy from pbo to texture
         gl.glActiveTexture(gl.GL_TEXTURE0)
         gl.glBindTexture(gl.GL_TEXTURE_2D, self.id)
         gl.glBindBuffer(gl.GL_PIXEL_UNPACK_BUFFER, self.pbo)
-        gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_WRAP_S, gl.GL_CLAMP_TO_BORDER)
-        gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_WRAP_T, gl.GL_CLAMP_TO_BORDER)
+        gl.glTexParameteri(
+            gl.GL_TEXTURE_2D, gl.GL_TEXTURE_WRAP_S, gl.GL_CLAMP_TO_BORDER
+        )
+        gl.glTexParameteri(
+            gl.GL_TEXTURE_2D, gl.GL_TEXTURE_WRAP_T, gl.GL_CLAMP_TO_BORDER
+        )
         # nearest interpolation
         gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_MAG_FILTER, gl.GL_NEAREST)
         gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_MIN_FILTER, gl.GL_NEAREST)

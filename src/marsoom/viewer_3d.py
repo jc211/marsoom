@@ -1,26 +1,28 @@
-from typing import Optional, Tuple
-from dataclasses import dataclass
-import sys
 import ctypes
 import math
+import sys
 from contextlib import contextmanager
+from dataclasses import dataclass
+from typing import Optional, Tuple
 
 import numpy as np
-import torch
-
 import pyglet
+import torch
+from imgui_bundle import ImVec2, imgui, imguizmo
 from pyglet import gl
 from pyglet.graphics.shader import Shader, ShaderProgram
-from pyglet.math import Vec3 as PyVec3
 from pyglet.math import Mat4 as PyMat4
-from imgui_bundle import imgui, ImVec2
+from pyglet.math import Vec3 as PyVec3
 
-from marsoom.context_3d import Context3D
-from marsoom.utils import calibration_matrix_values, convert_K_to_projection_matrixT, str_buffer, ortho_matrix_T
 from marsoom.axes import Axes
+from marsoom.context_3d import Context3D
+from marsoom.utils import (
+    calibration_matrix_values,
+    convert_K_to_projection_matrixT,
+    ortho_matrix_T,
+    str_buffer,
+)
 
-
-from imgui_bundle import imguizmo
 guizmo = imguizmo.im_guizmo
 
 
@@ -122,7 +124,6 @@ class Viewer3D:
         self.tl = None
         self._batch = pyglet.graphics.Batch()
         self._origin = Axes(batch=self._batch)
-
 
     def create_framebuffers(self):
         self._frame_texture = None
@@ -260,7 +261,6 @@ class Viewer3D:
         gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_MAG_FILTER, gl.GL_LINEAR)
         gl.glBindTexture(gl.GL_TEXTURE_2D, 0)
 
-
         # create a framebuffer object (FBO)
         if self._frame_fbo is None:
             self._frame_fbo = gl.GLuint()
@@ -357,18 +357,20 @@ class Viewer3D:
         self._projection_matrixT = self.gl_projectionT()
         K = self.K()
         vals = calibration_matrix_values(K, (self.screen_width, self.screen_height))
-        fov_x = vals['fovx']
-        fov_y = vals['fovy']
+        fov_x = vals["fovx"]
+        fov_y = vals["fovy"]
         self.fov_x = fov_x * np.pi / 180.0
         self.fov_y = fov_y * np.pi / 180.0
 
     def gl_projectionT(self) -> np.ndarray:
         if self.orthogonal:
-            return ortho_matrix_T(self.ortho_zoom, self.screen_width, self.screen_height)
+            return ortho_matrix_T(
+                self.ortho_zoom, self.screen_width, self.screen_height
+            )
         else:
             return convert_K_to_projection_matrixT(
                 self.K(), self.screen_width, self.screen_height
-            )    
+            )
 
     def gl_projection_from_world(self) -> np.ndarray:
         x_vw = self.x_vw()
@@ -387,7 +389,7 @@ class Viewer3D:
             ],
             dtype=np.float32,
         )
-    
+
     @property
     def aspect(self) -> float:
         return self.screen_width / self.screen_height
@@ -400,17 +402,20 @@ class Viewer3D:
         x_vw = self.x_vw()
         x_wv = np.linalg.inv(x_vw)
         return x_wv
-    
-    def manipulate(self, 
-				object_matrix: np.array,
-				operation: guizmo.OPERATION = guizmo.OPERATION.translate, 
-				mode: guizmo.MODE = guizmo.MODE.local, 
-                ):
-        
+
+    def manipulate(
+        self,
+        object_matrix: np.array,
+        operation: guizmo.OPERATION = guizmo.OPERATION.translate,
+        mode: guizmo.MODE = guizmo.MODE.local,
+    ):
+
         if self.in_imgui_window:
             if self.tl is not None:
                 guizmo.set_drawlist(self.window_draw_list)
-                guizmo.set_rect(self.tl.x, self.tl.y, self.screen_width, self.screen_height)
+                guizmo.set_rect(
+                    self.tl.x, self.tl.y, self.screen_width, self.screen_height
+                )
         else:
             guizmo.set_rect(0, 0, self.screen_width, self.screen_height)
 
@@ -437,7 +442,7 @@ class Viewer3D:
         self._render_new_frame = True
         self.update_view_matrix()
         self.update_projection_matrix()
-    
+
     def top_view(self):
         self.orthogonal = True
         self._camera_pos = PyVec3(0.0, 0.0, 2.0)
@@ -445,7 +450,7 @@ class Viewer3D:
         self._camera_up = PyVec3(0.0, 1.0, 0.0)
         self.update_view_matrix()
         self.update_projection_matrix()
-    
+
     def bottom_view(self):
         self.orthogonal = True
         self._camera_pos = PyVec3(0.0, 0.0, -2.0)
@@ -453,7 +458,7 @@ class Viewer3D:
         self._camera_up = PyVec3(0.0, 1.0, 0.0)
         self.update_view_matrix()
         self.update_projection_matrix()
-    
+
     def front_view(self):
         self.orthogonal = True
         self._camera_pos = PyVec3(0.0, 2.0, 0.0)
@@ -485,11 +490,10 @@ class Viewer3D:
         self._camera_up = PyVec3(0.0, 0.0, 1.0)
         self.update_view_matrix()
         self.update_projection_matrix()
-    
+
     def reset_view(self):
         self.orthogonal = False
         self.reset_camera()
-    
 
     def process_nav(self):
         if self.in_imgui_window:
@@ -499,31 +503,22 @@ class Viewer3D:
             if self.imgui_active():
                 return
         self.process_mouse()
-        if (
-            imgui.is_key_down(imgui.Key.w)
-            or imgui.is_key_down(imgui.Key.up_arrow)
-        ):
+        ctrl = imgui.get_io().key_ctrl
+        if ctrl:
+            return
+        if imgui.is_key_down(imgui.Key.w) or imgui.is_key_down(imgui.Key.up_arrow):
             self.orthogonal = False
             self._camera_pos += self._camera_front * (self._camera_speed)
             self.update_view_matrix()
-        if (
-            imgui.is_key_down(imgui.Key.s)
-            or imgui.is_key_down(imgui.Key.down_arrow)
-        ):
+        if imgui.is_key_down(imgui.Key.s) or imgui.is_key_down(imgui.Key.down_arrow):
             self.orthogonal = False
             self._camera_pos -= self._camera_front * (self._camera_speed)
             self.update_view_matrix()
-        if (
-            imgui.is_key_down(imgui.Key.a)
-            or imgui.is_key_down(imgui.Key.left_arrow)
-        ):
+        if imgui.is_key_down(imgui.Key.a) or imgui.is_key_down(imgui.Key.left_arrow):
             camera_side = PyVec3.cross(self._camera_front, self._camera_up).normalize()
             self._camera_pos -= camera_side * (self._camera_speed)
             self.update_view_matrix()
-        if (
-            imgui.is_key_down(imgui.Key.d)
-            or imgui.is_key_down(imgui.Key.right_arrow)
-        ):
+        if imgui.is_key_down(imgui.Key.d) or imgui.is_key_down(imgui.Key.right_arrow):
             camera_side = PyVec3.cross(self._camera_front, self._camera_up).normalize()
             self._camera_pos += camera_side * (self._camera_speed)
             self.update_view_matrix()
@@ -532,12 +527,12 @@ class Viewer3D:
         if guizmo.is_using_any():
             return
         io = imgui.get_io()
-        dx=io.mouse_delta.x
-        dy=-io.mouse_delta.y
-        scroll=-io.mouse_wheel*2
-        buttons=io.mouse_down
-        shift=io.key_shift
-        ctrl=io.key_ctrl
+        dx = io.mouse_delta.x
+        dy = -io.mouse_delta.y
+        scroll = -io.mouse_wheel * 2
+        buttons = io.mouse_down
+        shift = io.key_shift
+        ctrl = io.key_ctrl
         if shift:
             sensitivity = 0.01
         else:
@@ -563,6 +558,7 @@ class Viewer3D:
 
             # orbit camera
             from scipy.spatial.transform import Rotation as R
+
             self.orthogonal = False
 
             r = R.from_euler("xyz", [dy, -dx, 0], degrees=True)
@@ -577,9 +573,9 @@ class Viewer3D:
         if scroll:
             sensitivity = self.zoom_sensitivity
             if shift:
-                sensitivity = 10*sensitivity
+                sensitivity = 10 * sensitivity
             if self.orthogonal:
-                sensitivity = 0.1
+                sensitivity = 1
                 self.ortho_zoom *= 1.0 + scroll * sensitivity
                 self.ortho_zoom = max(1.0, self.ortho_zoom)
                 self.update_projection_matrix()
@@ -627,7 +623,7 @@ class Viewer3D:
         self.update_projection_matrix()
         world2projT = self.world2projT().flatten()
         self.window.window.projection = self._projection_matrixT.flatten()
-        self.window.window.view = self._view_matrix.T.flatten()   
+        self.window.window.view = self._view_matrix.T.flatten()
 
         gl.glEnable(gl.GL_DEPTH_TEST)
         # gl.glEnable(gl.GL_CULL_FACE)
@@ -636,15 +632,11 @@ class Viewer3D:
         gl.glBlendFunc(gl.GL_SRC_ALPHA, gl.GL_ONE_MINUS_SRC_ALPHA)
         gl.glClear(gl.GL_COLOR_BUFFER_BIT | gl.GL_DEPTH_BUFFER_BIT)
 
-        context = Context3D(
-            world2projT=world2projT,
-            camera_positon=self._camera_pos
-        )
-
+        context = Context3D(world2projT=world2projT, camera_positon=self._camera_pos)
 
         self._batch.draw()
         yield context
-    
+
         if self.screen_width == 0 or self.screen_height == 0:
             return
 
@@ -656,10 +648,11 @@ class Viewer3D:
         if self.window_draw_list:
             self.tl = imgui.get_cursor_screen_pos()
             imgui.image(
-                    self._frame_texture.value, 
-                    ImVec2(self.screen_width, self.screen_height),
-                    uv0=ImVec2(0, 1),
-                    uv1=ImVec2(1, 0))
+                self._frame_texture.value,
+                ImVec2(self.screen_width, self.screen_height),
+                uv0=ImVec2(0, 1),
+                uv1=ImVec2(1, 0),
+            )
         else:
             with self._frame_shader:
                 gl.glActiveTexture(gl.GL_TEXTURE0)
@@ -671,4 +664,3 @@ class Viewer3D:
                 )
                 gl.glBindVertexArray(0)
                 gl.glBindTexture(gl.GL_TEXTURE_2D, 0)
-    

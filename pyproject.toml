@@ -1,7 +1,7 @@
 [project]
 name = "marsoom"
 readme = "README.md"
-version = "2.0.1"
+version = "2.0.2"
 description = "A 3D drawing tool"
 requires-python = ">=3.10"
 dependencies = [
@@ -31,3 +31,5 @@ demo = "python scripts/demo_gui.py"
 [tool.pixi.pypi-dependencies]
 marsoom = { path = ".", editable = true }
  
+[tool.pixi.build-dependencies]
+pip = "*"

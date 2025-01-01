@@ -63,6 +63,11 @@ class CustomWindow(marsoom.Window):
         pyglet.gl.glPointSize(10)
         self.point = marsoom.Point(0.5, 0.5, 0.0, color=(255, 0, 0), batch=self.batch)
 
+        self.sc = marsoom.StructuredPointCloud(1280, 640, batch=self.batch)
+
+
+        
+
 
     
     def draw_demo_controls(self):

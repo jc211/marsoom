@@ -8,11 +8,27 @@ from pyglet import gl, image
 
 
 class Texture:
-    def __init__(self, width: int, height: int, dim: int = 3):
-        assert dim == 3 or dim == 4
-        self.dim = dim
+    def __init__(self, 
+                 width: int, 
+                 height: int, 
+                 fmt: int = gl.GL_RGB,
+                 internal_format: int = gl.GL_RGBA
+                 ):
+        self.fmt = fmt
+        self.internal_format = internal_format
+        if fmt == gl.GL_RGB or fmt == gl.GL_BGR:
+            self.dim = 3
+        elif fmt == gl.GL_RGBA or fmt == gl.GL_BGRA:
+            self.dim = 4
+        elif fmt == gl.GL_DEPTH_COMPONENT:
+            assert internal_format == gl.GL_DEPTH_COMPONENT32F, "internal format is inconsistent"
+            self.dim =1
+        else:
+            raise NotImplementedError(f"{fmt} not implemented")
+        
+
         self.element_size = ctypes.sizeof(ctypes.c_float)
-        self.tex = image.Texture.create(width=width, height=height, fmt=gl.GL_RGB)
+        self.tex = image.Texture.create(width=width, height=height, fmt=self.fmt, internalformat=self.internal_format)
         self.tex._set_tex_coords_order(3, 2, 1, 0)
         self.pbo = gl.GLuint()
         gl.glGenBuffers(1, self.pbo)
@@ -30,6 +46,10 @@ class Texture:
         #     flags=wp.RegisteredGLBuffer.WRITE_DISCARD,
         # )
         # self.copy_from_device(torch.zeros((height, width, dim), dtype=torch.float32))
+    
+    def is_depth(self):
+        return self.fmt == gl.GL_DEPTH_COMPONENT
+
 
     def __del__(self):
         try:
@@ -55,7 +75,7 @@ class Texture:
 
     def resize(self, width: int, height: int):
         del self.tex
-        self.tex = image.Texture.create(width=width, height=height)
+        self.tex = image.Texture.create(width=width, height=height, fmt=self.fmt, internalformat=self.internal_format)
         self.tex._set_tex_coords_order(3, 2, 1, 0)
         gl.glBindBuffer(gl.GL_PIXEL_UNPACK_BUFFER, self.pbo)
         gl.glBufferData(
@@ -67,8 +87,20 @@ class Texture:
         gl.glBindBuffer(gl.GL_PIXEL_UNPACK_BUFFER, 0)
 
     def copy_from_host(self, data: np.ndarray):
-        assert data.shape[2] == 3
-        assert data.dtype == np.float32
+
+        dtype = gl.GL_FLOAT
+        if data.dtype == np.float32:
+            dtype = gl.GL_FLOAT
+        elif data.dtype == np.uint8:
+            dtype = gl.GL_UNSIGNED_SHORT
+        else:
+            raise NotImplementedError(f"{data.dtype} cannot be uploaded")
+
+        if self.is_depth():
+            assert data.ndim == 2 and data.dtype == np.float32
+        else:
+            assert data.ndim == 3 and data.shape[2] == self.dim
+
         w = data.shape[1]
         h = data.shape[0]
         if w != self.width or h != self.height:
@@ -83,8 +115,8 @@ class Texture:
             0,
             self.width,
             self.height,
-            gl.GL_RGB,
-            gl.GL_FLOAT,
+            self.fmt,
+            dtype,
             data.ctypes.data,
         )
         gl.glBindTexture(gl.GL_TEXTURE_2D, 0)
@@ -125,7 +157,7 @@ class Texture:
             0,
             self.width,
             self.height,
-            gl.GL_RGB,
+            self.fmt,
             gl.GL_FLOAT,
             ctypes.c_void_p(0),
         )

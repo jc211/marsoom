@@ -5,31 +5,35 @@ import pyglet
 from pyglet.graphics import Batch, Group
 from pyglet.math import Mat4
 
-from marsoom.viewer_3d import Context3D 
 from marsoom.texture import Texture
 from marsoom.image_quad import ImageQuad
 import marsoom.utils
 from marsoom.line_model import LineModel
-from marsoom.utils import convert_K_to_projection_matrixT
 
 class CameraWireframe(LineModel):
     def __init__(
         self,
-        K_opengl: np.ndarray = marsoom.utils.DEFAULT_K_OPENGL_T.T,
+        K: np.ndarray = marsoom.utils.DEFAULT_K,
+        width: int = marsoom.utils.DEFAULT_WIDTH,
+        height: int = marsoom.utils.DEFAULT_HEIGHT,
         z_offset: float = 0.1,
         frame_color: Tuple[float, float, float, float] = (0.58, 0.58, 0.58, 0.58),
         group: pyglet.graphics.Group = None,
         batch: pyglet.graphics.Batch = None,
     ):
-        self.K_opengl = K_opengl
+        self.K = K
+        self.width = width
+        self.height = height
         self.z_offset = z_offset
         self.frame_color = frame_color  
         super().__init__(self._get_indices(), self._get_vertices(), self._get_colors(), group, batch)
     
-    def update_K_opengl(self, K_opengl: np.ndarray):
-        if np.allclose(self.K_opengl, K_opengl):
+    def update_K(self, K: np.ndarray, width: int, height: int):
+        if np.allclose(self.K, K):
             return
-        self.K_opengl = K_opengl
+        self.K = K
+        self.width = width
+        self.height = height
         self.position = self._get_vertices()
         self._update_vertices()
     
@@ -48,24 +52,26 @@ class CameraWireframe(LineModel):
         self._update_colors()
     
     def _get_vertices(self):
-        K_opengl = self.K_opengl
+        K = self.K
         z_offset = self.z_offset
+        cx = K[0, 2]
+        cy = K[1, 2]
+        offset_x = self.width // 2 - cx
+        offset_y = self.height // 2 - cy
 
-        top_left = np.array([-1.0, 1.0, 0.0, 1.0], dtype=np.float32)
-        top_right = np.array([1.0, 1.0, 0.0, 1.0], dtype=np.float32)
-        bot_left = np.array([-1.0, -1.0, 0.0, 1.0], dtype=np.float32)
-        bot_right = np.array([1.0, -1.0, 0.0, 1.0], dtype=np.float32)
+        top_left = np.array([0.0+offset_x, 0.0, 1.0], dtype=np.float32)
+        top_right = np.array([self.width+offset_x, 0.0, 1.0], dtype=np.float32)
+        bot_left = np.array([0.0, self.height+offset_y, 1.0], dtype=np.float32)
+        bot_right = np.array([self.width+offset_x, self.height+offset_y, 1.0], dtype=np.float32)
 
-        Kinv = np.linalg.inv(K_opengl)
+        Kinv = np.linalg.inv(K)
+        # flip the y and z
+        Kinv[1, :] *= -1
+        Kinv[2, :] *= -1
         top_left = Kinv @ top_left
         top_right = Kinv @ top_right
         bot_left = Kinv @ bot_left
         bot_right = Kinv @ bot_right
-
-        top_left = top_left[:3] / top_left[3] 
-        top_right = top_right[:3] / top_right[3] 
-        bot_left = bot_left[:3] / bot_left[3]  
-        bot_right = bot_right[:3] / bot_right[3] 
 
         top_left = top_left / np.linalg.norm(top_left) * z_offset
         top_right = top_right / np.linalg.norm(top_right) * z_offset
@@ -168,7 +174,7 @@ class CameraWireframeWithImage:
         z_offset: float = 0.1,
         width: int = marsoom.utils.DEFAULT_WIDTH,
         height: int = marsoom.utils.DEFAULT_HEIGHT,
-        K_opengl: np.ndarray = marsoom.utils.DEFAULT_K_OPENGL_T.T.copy(),
+        K: np.ndarray = marsoom.utils.DEFAULT_K.copy(),
         frame_color: Tuple[float, float, float, float] = (0.2, 0.2, 0.2, 0.1),
         alpha: float = 1.0,
         texture: Texture | None = None,
@@ -181,7 +187,11 @@ class CameraWireframeWithImage:
         self.batch = batch
 
         self.camera_wireframe = CameraWireframe(
-            z_offset=z_offset, K_opengl=K_opengl, frame_color=frame_color,
+            K=K, 
+            width=width, 
+            height=height,
+            z_offset=z_offset, 
+            frame_color=frame_color,
             group=group, 
             batch=batch
         )
@@ -229,11 +239,7 @@ class CameraWireframeWithImage:
         self.image_quad.tex_id = tex_id
     
     def update_K(self, K: np.ndarray, width: int, height: int):
-        K_opengl = convert_K_to_projection_matrixT(K, width, height).T.copy()
-        self.update_K_opengl(K_opengl)
-    
-    def update_K_opengl(self, K_opengl: np.ndarray):
-        self.camera_wireframe.update_K_opengl(K_opengl)
+        self.camera_wireframe.update_K(K, width, height)
         self.image_quad.update(top_left=self.camera_wireframe.top_left,
                                top_right=self.camera_wireframe.top_right,
                                bot_right=self.camera_wireframe.bot_right,

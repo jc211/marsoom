@@ -36,7 +36,7 @@ class StructuredPointCloudGroup(Group):
 
     void main() {
         float u = pixel.x / width;
-        float v = -(1.0 - pixel.y / height);
+        float v = (pixel.y / height);
         vec2 uv = vec2(u, v);
 
         float px = (pixel.x - cx) * depth / fl_x;

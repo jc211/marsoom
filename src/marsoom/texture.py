@@ -72,6 +72,13 @@ class Texture:
         if self.tex is not None:
             del self.tex
         self.tex = image.Texture.create(width=width, height=height, fmt=self.fmt, internalformat=self.internal_format)
+        gl.glBindTexture(gl.GL_TEXTURE_2D, self.tex.id)
+        gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_WRAP_S, gl.GL_CLAMP_TO_BORDER)
+        gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_WRAP_T, gl.GL_CLAMP_TO_BORDER)
+        gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_MAG_FILTER, gl.GL_NEAREST)
+        gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_MIN_FILTER, gl.GL_NEAREST)
+        gl.glBindTexture(gl.GL_TEXTURE_2D, 0)
+
         self.tex._set_tex_coords_order(3, 2, 1, 0)
         if dtype == gl.GL_FLOAT:
             self.element_size = ctypes.sizeof(ctypes.c_float)

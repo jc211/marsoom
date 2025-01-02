@@ -20,7 +20,6 @@ class StructuredPointCloudGroup(Group):
 
     uniform mat4 model;
 
-    uniform sampler2D depth_texture;
     uniform sampler2D color_texture;
 
     uniform float fl_x;
@@ -29,22 +28,21 @@ class StructuredPointCloudGroup(Group):
     uniform float cy;
     uniform float width;
     uniform float height;
-    uniform float depth_scale;
 
 
     in vec2 pixel;
+    in float depth;
     out vec4 color_;
 
     void main() {
         float u = pixel.x / width;
-        float v = 1.0 - pixel.y / height;
+        float v = -(1.0 - pixel.y / height);
         vec2 uv = vec2(u, v);
-        float depth = texture(depth_texture, uv).r * depth_scale;
 
         float px = (pixel.x - cx) * depth / fl_x;
         float py = -(pixel.y - cy) * depth / fl_y;
-        float pz = -depth;
-        vec3 position = vec3(px, py, pz);
+        float pz = depth;
+        vec3 position = vec3(px, py, -pz);
 
         gl_Position = window.projection * window.view * model * vec4(position, 1.0);
         color_ = texture(color_texture, uv);
@@ -65,9 +63,7 @@ class StructuredPointCloudGroup(Group):
 
     def __init__(self, 
                  program: ShaderProgram, 
-                 depth_texture_id: int,
                  color_texture_id: int,
-                 depth_scale: float,
                  width: int,
                  height: int,
                  fl_x: float = 1.0,
@@ -80,9 +76,7 @@ class StructuredPointCloudGroup(Group):
 
         self.program = program
         self.matrix = Mat4()
-        self.depth_texture_id = depth_texture_id 
         self.color_texture_id = color_texture_id
-        self.depth_scale = depth_scale
         self.width = width
         self.height = height
         self.fl_x = fl_x
@@ -92,9 +86,10 @@ class StructuredPointCloudGroup(Group):
 
 
     def set_state(self) -> None:
+        gl.glActiveTexture(gl.GL_TEXTURE0)
+        gl.glBindTexture(gl.GL_TEXTURE_2D, self.color_texture_id)
         self.program.use()
         self.program['model'] = self.matrix
-        self.program['depth_scale'] = self.depth_scale
         self.program['width'] = self.width
         self.program['height'] = self.height
         self.program['fl_x'] = self.fl_x
@@ -102,10 +97,7 @@ class StructuredPointCloudGroup(Group):
         self.program['cx'] = self.cx
         self.program['cy'] = self.cy
 
-        gl.glActiveTexture(gl.GL_TEXTURE0)
-        gl.glBindTexture(gl.GL_TEXTURE_2D, self.depth_texture_id)
-        gl.glActiveTexture(gl.GL_TEXTURE1)
-        gl.glBindTexture(gl.GL_TEXTURE_2D, self.color_texture_id)
+
 
     
     def __hash__(self) -> int:
@@ -142,7 +134,6 @@ class StructuredPointCloud:
         self.fl_y = 1.0
         self.cx = 0.0
         self.cy = 0.0
-        self._depth_scale = 1.0
 
         self.program = get_default_shader()
         mat_group = StructuredPointCloudGroup(
@@ -151,74 +142,59 @@ class StructuredPointCloud:
             fl_y=self.fl_y,
             cx=self.cx,
             cy=self.cy,
-            depth_texture_id=self._depth_texture_id,
             color_texture_id=self._color_texture_id,
             width=self._width,
             height=self._height,
-            depth_scale=self._depth_scale,
             parent=self.group)  
         num_points = self._width * self._height
         self.vlist = self.program.vertex_list(
-            num_points, gl.GL_POINTS, position=("f", self._get_vertices()), batch=self.batch, group=mat_group
+            count=num_points, 
+            mode=gl.GL_POINTS, 
+            pixel=("f", self._get_vertices()), 
+            depth=("f", np.zeros(num_points, dtype=np.float32)),
+            batch=self.batch, 
+            group=mat_group
         )
         self._matrix = Mat4()   
         self.groups = [mat_group]
     
     def _get_vertices(self):
         # get pixels 
-        x = np.arange(self.width)
-        y = np.arange(self.height)
+        x = np.arange(self.width, dtype=np.float32)
+        y = np.arange(self.height, dtype=np.float32)
         xx, yy = np.meshgrid(x, y)
-        return np.stack([xx.flatten(), yy.flatten()], axis=1)
+        return np.stack([xx.flatten(), yy.flatten()], axis=1).flatten()
+    
+    def _get_depth(self):
+        return np.zeros(self.width * self.height, dtype=np.float32)
     
     def _update_vertices(self):
-        self.vlist.position[:] = self._get_vertices()
-    
+        self.vlist.pixel[:] = self._get_vertices()
+        self.vlist.depth[:] = self._get_depth()
     
     @property
     def width(self) -> int:
         return self._width
     
-    @width.setter
-    def width(self, value: int) -> None:
-        self._width = value
-        self._update_vertices()
-        for group in self.groups:
-            group.width = value
-    
     @property
     def height(self) -> int:
         return self._height
 
-    @height.setter
-    def height(self, value: int) -> None:
-        self._height = value
-        self._update_vertices()
-        for group in self.groups:
-            group.height = value
     
-    def update_intrinsics(self, fl_x: float, fl_y: float, cx: float, cy: float, depth_scale: float) -> None:
+    def update_intrinsics(self, fl_x: float, fl_y: float, cx: float, cy: float ) -> None:
         self.fl_x = fl_x
         self.fl_y = fl_y
         self.cx = cx
         self.cy = cy
-        self._depth_scale = depth_scale
         for group in self.groups:
             group.fl_x = fl_x
             group.fl_y = fl_y
             group.cx = cx
             group.cy = cy
-            group.depth_scale = depth_scale
     
-    @property
-    def depth_texture_id(self) -> int:
-        return self._depth_texture_id
+    def update_depth(self, depth:np.ndarray) -> None:
+        self.vlist.depth[:] = depth.flatten()
     
-    @depth_texture_id.setter
-    def depth_texture_id(self, value: int) -> None:
-        self._depth_texture_id = value
-        for group in self.groups:
-            group.depth_texture_id = value
 
     @property
     def color_texture_id(self) -> int:
@@ -239,3 +215,4 @@ class StructuredPointCloud:
         self._matrix = value
         for group in self.groups:
             group.matrix = value
+    

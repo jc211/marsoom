@@ -8,5 +8,6 @@ from marsoom.shape_3d import Circle, Point
 from marsoom.points import Points
 from marsoom.structured_pointcloud import StructuredPointCloud
 from marsoom.grid import Grid
+from marsoom.texture import Texture
 from imgui_bundle import imguizmo, imgui
 guizmo = imguizmo.im_guizmo

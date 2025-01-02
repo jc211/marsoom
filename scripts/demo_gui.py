@@ -8,6 +8,7 @@ from marsoom import imgui, guizmo
 import pyglet
 
 import marsoom.grid
+import marsoom.texture
 
 
 SCRIPT_PATH = Path(__file__).parent
@@ -51,22 +52,79 @@ class CustomWindow(marsoom.Window):
 
         sample_image = np.random.randn(480, 640, 3).astype(np.float32)
         self.image_viewer.update_image(sample_image)
+        self.camera_batch = pyglet.graphics.Batch()
         self.camera_1 = marsoom.CameraWireframeWithImage(
-            z_offset=0.2,
-            batch=self.batch,
+            batch=self.camera_batch,
             width=640,
             height=480,
         )
-        self.camera_1.matrix = Mat4().translate((1.0, 0.0, 0.0))
+        # self.camera_1.matrix = Mat4().translate((1.0, 0.0, 0.0))
         self.camera_1.update_image(sample_image)
         self.circle = marsoom.Circle(1.0, 1.0, 1.0, 0.3, batch=self.batch)
-        pyglet.gl.glPointSize(10)
         self.point = marsoom.Point(0.5, 0.5, 0.0, color=(255, 0, 0), batch=self.batch)
 
-        self.sc = marsoom.StructuredPointCloud(1280, 640, batch=self.batch)
+
+        data = np.load("scripts/depth_data.npy", allow_pickle=True).item()
+        depth = data["depth"]
+        color = data["color"]
+        depth_scale = data["depth_scale"]
+        K = data["K"]
+
+        # pointcloud
+        # convert depth map to pointcloud
+        # use open3d
+        # rgbd_image = o3d.geometry.RGBDImage.create_from_color_and_depth(
+        #     o3d.geometry.Image(color),
+        #     o3d.geometry.Image(depth),
+        #     depth_scale=1.0/depth_scale,
+        #     depth_trunc=10.0,
+        #     convert_rgb_to_intensity=False
+        # )
+        # pcd = o3d.geometry.PointCloud.create_from_rgbd_image(
+        #     rgbd_image,
+        #     o3d.camera.PinholeCameraIntrinsic(
+        #         width=color.shape[1],
+        #         height=color.shape[0],
+        #         fx=K[0, 0],
+        #         fy=K[1, 1],
+        #         cx=K[0, 2],
+        #         cy=K[1, 2]
+        #     )
+        # )
+
+        # # visualize
+        # # o3d.visualization.draw_geometries([pcd])
+
+        # points = np.asarray(pcd.points)
+        # # flip z and y
+        # points[:, 1] = -points[:, 1]
+        # points[:, 2] = -points[:, 2]
+        # colors = np.asarray(pcd.colors)
+        # # self.points_3d = marsoom.Points(points=points, colors=colors, batch=self.batch_sc)
 
 
-        
+        self.batch_sc = pyglet.graphics.Batch()
+
+
+        self.camera_1.update_K(K, width=color.shape[1], height=color.shape[0])
+
+        width = color.shape[1]
+        height = color.shape[0]
+        self.sc = marsoom.StructuredPointCloud(width, height, batch=self.batch_sc)
+        self.sc.update_intrinsics(K[0, 0], K[1, 1], K[0, 2], K[1, 2])
+        # self.camera_1.update_image((color/255.0).astype(np.float32))
+        self.camera_1.update_image(color)
+        self.tex_color = marsoom.texture.Texture(width=width, height=height, fmt=pyglet.gl.GL_BGR, internal_format=pyglet.gl.GL_RGBA)
+        # self.tex_color.copy_from_host((color/255.0).astype(np.float32))
+        self.tex_color.copy_from_host(color)
+        depth[depth == 65535] = 0
+        depth = depth.astype(np.float32)*depth_scale
+        self.sc.update_depth(depth)
+        self.sc.color_texture_id = self.tex_color.tex.id
+
+
+
+
 
 
     
@@ -91,8 +149,11 @@ class CustomWindow(marsoom.Window):
         self.draw_demo_controls()
 
         imgui.begin("3D Drawing")   
+        pyglet.gl.glPointSize(6)
         with self.viewer.draw(in_imgui_window=True) as ctx:
             self.batch.draw()
+            self.camera_batch.draw()    
+            self.batch_sc.draw()
 
         guizmo.set_id(0)
         self.manip_3d_object = self.viewer.manipulate(

@@ -256,8 +256,6 @@ class CameraWireframeWithImage:
         self.camera_wireframe.update_frame_color(frame_color)
 
     def update_image(self, image: torch.Tensor | np.ndarray):
-        assert image.shape[0] == self.texture.height
-        assert image.shape[1] == self.texture.width
         if isinstance(image, torch.Tensor):
             self.texture.copy_from_device(image)
         elif isinstance(image, np.ndarray):

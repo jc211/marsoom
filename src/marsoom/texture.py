@@ -27,19 +27,14 @@ class Texture:
             raise NotImplementedError(f"{fmt} not implemented")
         
 
-        self.element_size = ctypes.sizeof(ctypes.c_float)
-        self.tex = image.Texture.create(width=width, height=height, fmt=self.fmt, internalformat=self.internal_format)
-        self.tex._set_tex_coords_order(3, 2, 1, 0)
-        self.pbo = gl.GLuint()
-        gl.glGenBuffers(1, self.pbo)
-        gl.glBindBuffer(gl.GL_PIXEL_UNPACK_BUFFER, self.pbo)
-        gl.glBufferData(
-            gl.GL_PIXEL_UNPACK_BUFFER,
-            width * height * self.dim * self.element_size,
-            None,
-            gl.GL_DYNAMIC_DRAW,
-        )
-        self._pbo_to_texture()
+
+        # self.pbo = gl.GLuint()
+        # gl.glGenBuffers(1, self.pbo)
+        self.tex = None
+
+        self.resize(width, height, dtype=gl.GL_UNSIGNED_BYTE)
+
+        # self._pbo_to_texture()
         # self.cuda_pbo = wp.RegisteredGLBuffer(
         #     int(self.pbo.value),
         #     wp.get_cuda_device(),
@@ -73,18 +68,28 @@ class Texture:
     def aspect(self):
         return self.width / self.height
 
-    def resize(self, width: int, height: int):
-        del self.tex
+    def resize(self, width: int, height: int, dtype: int = gl.GL_FLOAT):
+        if self.tex is not None:
+            del self.tex
         self.tex = image.Texture.create(width=width, height=height, fmt=self.fmt, internalformat=self.internal_format)
         self.tex._set_tex_coords_order(3, 2, 1, 0)
-        gl.glBindBuffer(gl.GL_PIXEL_UNPACK_BUFFER, self.pbo)
-        gl.glBufferData(
-            gl.GL_PIXEL_UNPACK_BUFFER,
-            width * height * self.dim * self.element_size,
-            None,
-            gl.GL_DYNAMIC_DRAW,
-        )
-        gl.glBindBuffer(gl.GL_PIXEL_UNPACK_BUFFER, 0)
+        if dtype == gl.GL_FLOAT:
+            self.element_size = ctypes.sizeof(ctypes.c_float)
+        elif dtype == gl.GL_UNSIGNED_BYTE:
+            self.element_size = ctypes.sizeof(ctypes.c_uint8)
+        else:
+            raise NotImplementedError(f"{dtype} not implemented")
+
+
+        # gl.glBindBuffer(gl.GL_PIXEL_UNPACK_BUFFER, self.pbo)
+        # gl.glBufferData(
+        #     gl.GL_PIXEL_UNPACK_BUFFER,
+        #     width * height * self.dim * self.element_size,
+        #     None,
+        #     gl.GL_DYNAMIC_DRAW,
+        # )
+        # gl.glBindBuffer(gl.GL_PIXEL_UNPACK_BUFFER, 0)
+        self.dtype = dtype
 
     def copy_from_host(self, data: np.ndarray):
 
@@ -92,7 +97,7 @@ class Texture:
         if data.dtype == np.float32:
             dtype = gl.GL_FLOAT
         elif data.dtype == np.uint8:
-            dtype = gl.GL_UNSIGNED_SHORT
+            dtype = gl.GL_UNSIGNED_BYTE
         else:
             raise NotImplementedError(f"{data.dtype} cannot be uploaded")
 
@@ -103,8 +108,8 @@ class Texture:
 
         w = data.shape[1]
         h = data.shape[0]
-        if w != self.width or h != self.height:
-            self.resize(w, h)
+        if w != self.width or h != self.height or self.dtype != dtype:
+            self.resize(w, h, dtype)
 
         gl.glActiveTexture(gl.GL_TEXTURE0)
         gl.glBindTexture(gl.GL_TEXTURE_2D, self.id)
@@ -116,7 +121,7 @@ class Texture:
             self.width,
             self.height,
             self.fmt,
-            dtype,
+            self.dtype,
             data.ctypes.data,
         )
         gl.glBindTexture(gl.GL_TEXTURE_2D, 0)
@@ -158,7 +163,7 @@ class Texture:
             self.width,
             self.height,
             self.fmt,
-            gl.GL_FLOAT,
+            self.dtype,
             ctypes.c_void_p(0),
         )
         gl.glBindBuffer(gl.GL_PIXEL_UNPACK_BUFFER, 0)

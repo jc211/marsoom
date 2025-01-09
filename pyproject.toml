@@ -3,7 +3,7 @@ name = "marsoom"
 readme = "README.md"
 version = "2.0.2"
 description = "A 3D drawing tool"
-requires-python = ">=3.10"
+requires-python = ">=3.10,<=3.12"
 dependencies = [
     "imgui_bundle>=1.6.1",
     "pyglet",
@@ -11,7 +11,8 @@ dependencies = [
     "torch",
     "numpy",
     "scipy",
-    "trimesh"
+    "trimesh",
+    "open3d"
 ]
  
 [build-system]

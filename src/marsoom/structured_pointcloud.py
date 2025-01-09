@@ -151,7 +151,7 @@ class StructuredPointCloud:
             count=num_points, 
             mode=gl.GL_POINTS, 
             pixel=("f", self._get_vertices()), 
-            depth=("f", np.zeros(num_points, dtype=np.float32)),
+            depth=("f/stream", self._get_depth()),
             batch=self.batch, 
             group=mat_group
         )

@@ -125,10 +125,19 @@ class MeshGroup(Group):
 
 class InstancedMeshRenderer:
 
-    def __init__(self, mesh: o3d.geometry.TriangleMesh, default_color: np.ndarray = np.array([1.0, 0.0, 0.0])):
+    @staticmethod
+    def from_open3d_mesh(mesh: o3d.geometry.TriangleMesh, default_color: np.ndarray = np.array([1.0, 0.0, 0.0])):
         mesh.compute_vertex_normals()   
+        return InstancedMeshRenderer(mesh, np.array(mesh.vertices), np.array(mesh.triangles), default_color)
+
+    def __init__(self, 
+                 vertices: np.ndarray,
+                 triangles: np.ndarray,
+                 normals: np.ndarray,
+                 default_color: np.ndarray = np.array([1.0, 0.0, 0.0])):
+
         self.group = MeshGroup(get_default_shader(), sun_direction=np.array([0.2, -0.8, 0.3], dtype=np.float32))
-        indices = np.array(mesh.triangles).flatten().astype(np.uint32)
+        indices = np.array(triangles).flatten().astype(np.uint32)
         self.index_count = len(indices)
         self.domain = cuda_vertex_list_create(
             program=self.group.program,
@@ -143,8 +152,8 @@ class InstancedMeshRenderer:
         )
         self.num_instances = 0
         self.default_color = torch.tensor(default_color).float().cuda()
-        self.domain.update_buffer("aPos", torch.tensor(np.array(mesh.vertices), dtype=torch.float32).cuda())
-        self.domain.update_buffer("aNormal", torch.tensor(np.array(mesh.vertex_normals), dtype=torch.float32).cuda())
+        self.domain.update_buffer("aPos", torch.tensor(np.asarray(vertices), dtype=torch.float32).cuda())
+        self.domain.update_buffer("aNormal", torch.tensor(np.asarray(normals), dtype=torch.float32).cuda())
     
     @property
     def scale_modifier(self):

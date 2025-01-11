@@ -932,8 +932,6 @@ packages:
   md5: 30fd6e37fe21f86f4bd26d6ee73eeec7
   depends:
   - libgcc-ng >=12
-  arch: x86_64
-  platform: linux
   license: LGPL-2.1-only
   license_family: GPL
   purls: []
@@ -965,8 +963,6 @@ packages:
   md5: 5aa797f8787fe7a17d1b0821485b5adc
   depends:
   - libgcc-ng >=12
-  arch: x86_64
-  platform: linux
   license: LGPL-2.1-or-later
   purls: []
   size: 100393
@@ -992,7 +988,7 @@ packages:
 - pypi: .
   name: marsoom
   version: 2.0.2
-  sha256: 32137375208c5d0d9d291e27110c835f77765caaff0b1ae3a806a9e5dda831ab
+  sha256: 81e865bc6717964c81ee7d093703fc59f065890aefd38d19f38b35663af4a0d0
   requires_dist:
   - imgui-bundle>=1.6.1
   - pyglet
@@ -1002,7 +998,7 @@ packages:
   - scipy
   - trimesh
   - open3d
-  requires_python: '>=3.10,<3.12'
+  requires_python: '>=3.10,<=3.12'
   editable: true
 - pypi: https://files.pythonhosted.org/packages/b2/7d/2d873209536b9ee17340754118a2a17988bc18981b5b56e6715ee07373ac/matplotlib-3.10.0-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl
   name: matplotlib
@@ -1498,8 +1494,6 @@ packages:
   - tzdata
   constrains:
   - python_abi 3.11.* *_cp311
-  arch: x86_64
-  platform: linux
   license: Python-2.0
   purls: []
   size: 30624804

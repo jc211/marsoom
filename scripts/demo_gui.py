@@ -10,7 +10,6 @@ import pyglet
 import marsoom.grid
 import marsoom.texture
 
-
 SCRIPT_PATH = Path(__file__).parent
 
 class CustomWindow(marsoom.Window):
@@ -123,10 +122,6 @@ class CustomWindow(marsoom.Window):
         self.sc.color_texture_id = self.tex_color.tex.id
 
 
-
-
-
-
     
     def draw_demo_controls(self):
         imgui.begin("Debug")
@@ -145,7 +140,7 @@ class CustomWindow(marsoom.Window):
         imgui.end()
 
 
-    def draw(self):
+    def render(self):
         self.draw_demo_controls()
 
         imgui.begin("3D Drawing")   

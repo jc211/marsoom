@@ -13,7 +13,7 @@ from marsoom.utils import ASSET_PATH
 
 gizmo = imguizmo.im_guizmo
 
-class Window:
+class Window(pyglet.window.Window):
     def __init__(self, 
                  width: int = 1280, 
                  height: int = 720, 
@@ -24,31 +24,23 @@ class Window:
                  docking: bool = True,
                  ):
 
+        super().__init__(width=width, height=height, caption=caption, resizable=resizable, vsync=vsync, visible=visible)
         pyglet.model.codecs.add_decoders(marsoom.decoders.stl)
         pyglet.resource.path.append(str(ASSET_PATH))
         pyglet.resource.reindex()
-        self.window = pyglet.window.Window(
-            width=width,
-            height=height,
-            caption=caption,
-            resizable=resizable,
-            vsync=vsync,
-            visible=visible
-        )
         self.bg_color = (1.0, 1.0, 1.0, 1.0)
-        self.window.switch_to()        
+        self.switch_to()        
         imgui.create_context()              
         io = imgui.get_io()
         if docking: 
             io.config_flags |= imgui.ConfigFlags_.docking_enable
             io.config_windows_move_from_title_bar_only = True  
         self.imgui_renderer = PygletProgrammablePipelineRenderer(
-                self.window, attach_callbacks=True
+                self, attach_callbacks=True
         )
-        self.window.push_handlers(self)
     
     def should_exit(self):
-        return self.window.has_exit
+        return self.has_exit
 
     def imgui_active(self):
         return (
@@ -57,18 +49,18 @@ class Window:
             or imgui.is_any_item_active()
         )
 
-    def draw(self): # Overwrite this method
+    def render(self): # Overwrite this method
         imgui.begin("Hello, world!")
         imgui.end()
     
     def on_draw(self):
         self.check_gl_error()
         gl.glClearColor(*self.bg_color)
-        self.window.clear()
+        self.clear()
         imgui.new_frame()
         gizmo.begin_frame()
         imgui.dock_space_over_viewport(flags=imgui.DockNodeFlags_.passthru_central_node)
-        self.draw()
+        self.render()
         imgui.render()
         self.imgui_renderer.render(imgui.get_draw_data())
     
@@ -78,10 +70,14 @@ class Window:
             print(f"OpenGL error: {error}")
 
     def run(self, fps:float=60.0):
+        # self.push_handlers(self.draw)
         pyglet.app.run(1.0 / fps) 
     
     def step(self):
+        from pyglet.window import Window
+        Window._enable_event_queue = False
         pyglet.clock.tick(poll=True)
+        pyglet.app.platform_event_loop.step(1/400.0)
         for w in pyglet.app.windows:
             w.switch_to()
             w.dispatch_events()

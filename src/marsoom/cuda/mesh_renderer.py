@@ -128,7 +128,7 @@ class InstancedMeshRenderer:
     @staticmethod
     def from_open3d_mesh(mesh: o3d.geometry.TriangleMesh, default_color: np.ndarray = np.array([1.0, 0.0, 0.0])):
         mesh.compute_vertex_normals()   
-        return InstancedMeshRenderer(mesh, np.array(mesh.vertices), np.array(mesh.triangles), default_color)
+        return InstancedMeshRenderer(np.array(mesh.vertices), np.array(mesh.triangles), np.array(mesh.vertex_normals), default_color)
 
     def __init__(self, 
                  vertices: np.ndarray,
@@ -152,8 +152,8 @@ class InstancedMeshRenderer:
         )
         self.num_instances = 0
         self.default_color = torch.tensor(default_color).float().cuda()
-        self.domain.update_buffer("aPos", torch.tensor(np.asarray(vertices), dtype=torch.float32).cuda())
-        self.domain.update_buffer("aNormal", torch.tensor(np.asarray(normals), dtype=torch.float32).cuda())
+        self.domain.update_buffer("aPos", torch.tensor(np.array(vertices), dtype=torch.float32).cuda())
+        self.domain.update_buffer("aNormal", torch.tensor(np.array(normals), dtype=torch.float32).cuda())
     
     @property
     def scale_modifier(self):

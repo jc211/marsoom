@@ -622,8 +622,8 @@ class Viewer3D:
         gl.glClearColor(*self.background_color, 1.0)
         self.update_projection_matrix()
         world2projT = self.world2projT().flatten()
-        self.window.window.projection = self._projection_matrixT.flatten()
-        self.window.window.view = self._view_matrix.T.flatten()
+        self.window.projection = self._projection_matrixT.flatten()
+        self.window.view = self._view_matrix.T.flatten()
 
         gl.glEnable(gl.GL_DEPTH_TEST)
         # gl.glEnable(gl.GL_CULL_FACE)

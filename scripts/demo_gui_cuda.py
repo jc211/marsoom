@@ -31,7 +31,7 @@ class CustomWindow(marsoom.Window):
         points = torch.randn(100, 3, dtype=torch.float32)
         colors = torch.rand(100, 4, dtype=torch.float32)
         self.points = marsoom.cuda.PointRenderer()
-        self.mesh_renderer = marsoom.cuda.InstancedMeshRenderer(
+        self.mesh_renderer = marsoom.cuda.InstancedMeshRenderer.from_open3d_mesh(
             mesh=o3d.geometry.TriangleMesh.create_sphere(radius=0.1),
         )
         positions = torch.rand(10, 3, dtype=torch.float32).cuda()
@@ -58,7 +58,7 @@ class CustomWindow(marsoom.Window):
         imgui.end()
 
 
-    def draw(self):
+    def render(self):
         self.draw_demo_controls()
 
         imgui.begin("3D Drawing")   

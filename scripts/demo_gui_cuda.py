@@ -40,6 +40,22 @@ class CustomWindow(marsoom.Window):
             positions=positions,
         )
 
+        self.ellipse_renderer = marsoom.cuda.EllipseRenderer()
+        num_ellipses = 100
+        positions = torch.rand(num_ellipses, 3, dtype=torch.float32).cuda()
+        positions[:, 0] += -1.0
+        colors = torch.rand(num_ellipses, 3, dtype=torch.float32).cuda()
+        cov2d = torch.zeros(num_ellipses, 3, dtype=torch.float32).cuda()
+        cov2d[:, 0] = 100.0
+        cov2d[:, 2] = 100.0
+        self.ellipse_renderer.update(
+            positions=positions,
+            colors=colors,
+            cov2D=cov2d,
+            opacity=torch.rand(num_ellipses, 1, dtype=torch.float32).cuda()
+        )
+
+
 
     def draw_demo_controls(self):
         imgui.begin("Debug")
@@ -69,8 +85,9 @@ class CustomWindow(marsoom.Window):
         )
         with self.viewer.draw(in_imgui_window=True) as ctx:
             self.batch.draw()
-            self.points.draw()
-            self.mesh_renderer.draw()
+            # self.points.draw()
+            # self.mesh_renderer.draw()
+            self.ellipse_renderer.draw()
 
         guizmo.set_id(0)
         self.viewer.process_nav()

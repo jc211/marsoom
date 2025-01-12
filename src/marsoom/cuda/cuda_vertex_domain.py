@@ -66,10 +66,14 @@ class CUDAVertexDomain:
             if attribute.instance:
                 attribute.set_divisor()
         self.vao.unbind()
+        self.num_elements = 0
     
     def resize(self, num_elements: int) -> None:
+        if num_elements == self.num_elements:
+            return
         for buffer, _ in self.buffer_attributes:
             buffer.resize(num_elements)
+        self.num_elements = num_elements
     
     def get_buffer(self, name: str) -> AttributeCUDABufferObject:
         if name not in self.attrib_name_buffers:

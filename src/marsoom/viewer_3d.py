@@ -38,6 +38,11 @@ default_vertex_source = """#version 150 core
         mat4 view;
     } window;
 
+    uniform ViewportBlock {
+        float width;
+        float height;
+    } viewport;
+
     uniform LightBlock {
         vec3 viewPos;
         vec3 lightColor;
@@ -153,9 +158,11 @@ class Viewer3D:
 
         self._default_shader = get_default_shader()
         self._light_block = self._default_shader.uniform_blocks["LightBlock"].create_ubo()
+        self._viewport_block = self._default_shader.uniform_blocks["ViewportBlock"].create_ubo()
         with self._light_block as ubo:
             ubo.lightColor[:] = (1.0, 1.0, 1.0)
             ubo.sunDirection[:] = (0.0, 0.0, 1.0)
+        
 
         self.reset_camera()
         self.window = window
@@ -268,6 +275,10 @@ class Viewer3D:
         if self._frame_depth_texture is None:
             self._frame_depth_texture = gl.GLuint()
             gl.glGenTextures(1, self._frame_depth_texture)
+        
+        with self._viewport_block as ubo:
+            ubo.width[0] = ctypes.c_float(float(self.screen_width))
+            ubo.height[0] = ctypes.c_float(float(self.screen_height))
 
         # set up RGB texture
         gl.glBindFramebuffer(gl.GL_FRAMEBUFFER, 0)
@@ -650,6 +661,7 @@ class Viewer3D:
             or imgui.is_any_item_active()
             or imgui.get_io().want_capture_mouse
         )
+    
 
     @contextmanager
     def draw(self, in_imgui_window: bool = False):

@@ -1,7 +1,7 @@
 [project]
 name = "marsoom"
 readme = "README.md"
-version = "2.0.2"
+version = "2.0.3"
 description = "A 3D drawing tool"
 requires-python = ">=3.10,<=3.12"
 dependencies = [

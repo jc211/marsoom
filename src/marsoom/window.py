@@ -70,7 +70,6 @@ class Window(pyglet.window.Window):
             print(f"OpenGL error: {error}")
 
     def run(self, fps:float=60.0):
-        # self.push_handlers(self.draw)
         pyglet.app.run(1.0 / fps) 
     
     def step(self):

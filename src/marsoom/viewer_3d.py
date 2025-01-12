@@ -26,6 +26,40 @@ from marsoom.utils import (
 guizmo = imguizmo.im_guizmo
 
 
+def get_default_shader() -> ShaderProgram:
+    return ShaderProgram(Shader(default_vertex_source, "vertex"), Shader(default_fragment_source, "fragment"))
+
+default_vertex_source = """#version 150 core
+    in vec4 position;
+
+    uniform WindowBlock
+    {
+        mat4 projection;
+        mat4 view;
+    } window;
+
+    uniform LightBlock {
+        vec3 viewPos;
+        vec3 lightColor;
+        vec3 sunDirection;
+    } light;
+
+
+    void main()
+    {
+        gl_Position = window.projection * window.view * position;
+    }
+"""
+default_fragment_source = """#version 150 core
+    out vec4 color;
+
+    void main()
+    {
+        color = vec4(1.0, 0.0, 0.0, 1.0);
+    }
+"""
+
+
 frame_vertex_shader = """
 #version 330 core
 layout (location = 0) in vec3 aPos;
@@ -116,6 +150,13 @@ class Viewer3D:
     def __init__(self, window, show_origin: bool = True):
         self.create_framebuffers()
         # self._setup_framebuffer()
+
+        self._default_shader = get_default_shader()
+        self._light_block = self._default_shader.uniform_blocks["LightBlock"].create_ubo()
+        with self._light_block as ubo:
+            ubo.lightColor[:] = (1.0, 1.0, 1.0)
+            ubo.sunDirection[:] = (0.0, 0.0, 1.0)
+
         self.reset_camera()
         self.window = window
         self.show_origin = show_origin
@@ -319,6 +360,14 @@ class Viewer3D:
             gl.GL_DYNAMIC_DRAW,
         )
         gl.glBindBuffer(gl.GL_PIXEL_PACK_BUFFER, 0)
+    
+    def set_sun_direction(self, sun_direction: np.ndarray):
+        with self._light_block as ubo:
+            ubo.sunDirection[:] = sun_direction
+    
+    def set_light_color(self, light_color: np.ndarray):
+        with self._light_block as ubo:
+            ubo.lightColor[:] = light_color
 
     def go_to_view(
         self,
@@ -349,6 +398,8 @@ class Viewer3D:
             PyMat4.look_at(cam_pos, cam_pos + self._camera_front, self._camera_up),
             dtype=np.float32,
         )
+        with self._light_block as ubo:
+            ubo.viewPos[:] = cam_pos
         self._render_new_frame = True
 
     def update_projection_matrix(self):

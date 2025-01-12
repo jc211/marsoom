@@ -165,6 +165,8 @@ class Viewer3D:
         self.tl = None
         self._batch = pyglet.graphics.Batch()
         self._origin = Axes(batch=self._batch)
+        self.near = 0.01
+        self.far = 100.0
 
     def create_framebuffers(self):
         self._frame_texture = None
@@ -416,11 +418,11 @@ class Viewer3D:
     def gl_projectionT(self) -> np.ndarray:
         if self.orthogonal:
             return ortho_matrix_T(
-                self.ortho_zoom, self.screen_width, self.screen_height
+                self.ortho_zoom, self.screen_width, self.screen_height, self.near, self.far
             )
         else:
             return convert_K_to_projection_matrixT(
-                self.K(), self.screen_width, self.screen_height
+                self.K(), self.screen_width, self.screen_height, self.near, self.far
             )
 
     def gl_projection_from_world(self) -> np.ndarray:

@@ -123,9 +123,7 @@ class CustomWindow(marsoom.Window):
 
         self.draw_overlay = False
         self.overlay_tex = marsoom.texture.Texture(width=width, height=height, fmt=pyglet.gl.GL_RGB, internal_format=pyglet.gl.GL_RGBA)
-        image = np.random.rand(height, width, 3)*255
-        image = image.astype(np.uint8)
-        print(image)
+        image = np.random.rand(height, width, 3).astype(np.float32)
         self.overlay_tex.copy_from_host(
             image)
 

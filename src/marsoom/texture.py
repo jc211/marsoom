@@ -2,9 +2,22 @@ import ctypes
 
 import numpy as np
 
-# import torch
-# import warp as wp
+import torch
+import warp
 from pyglet import gl, image
+
+
+
+_numpy_to_gl = {
+    np.dtype(np.float32): gl.GL_FLOAT,
+    np.dtype(np.uint8): gl.GL_UNSIGNED_BYTE,
+}
+_gl_to_numpy = { v: k for k, v in _numpy_to_gl.items() }
+
+_warp_to_gl = {
+    warp.float32: gl.GL_FLOAT,
+    warp.uint8: gl.GL_UNSIGNED_BYTE,
+}
 
 
 class Texture:
@@ -25,22 +38,13 @@ class Texture:
             self.dim =1
         else:
             raise NotImplementedError(f"{fmt} not implemented")
-        
 
-
-        # self.pbo = gl.GLuint()
-        # gl.glGenBuffers(1, self.pbo)
-        self.tex = None
-
-        self.resize(width, height, dtype=gl.GL_UNSIGNED_BYTE)
-
-        # self._pbo_to_texture()
-        # self.cuda_pbo = wp.RegisteredGLBuffer(
-        #     int(self.pbo.value),
-        #     wp.get_cuda_device(),
-        #     flags=wp.RegisteredGLBuffer.WRITE_DISCARD,
-        # )
-        # self.copy_from_device(torch.zeros((height, width, dim), dtype=torch.float32))
+        self.cuda_available = warp.context.is_cuda_available()
+        self.cuda_pbo = None
+        self.tex = image.Texture.create(width=width, height=height, fmt=self.fmt, internalformat=self.internal_format)
+        self.dtype = gl.GL_UNSIGNED_BYTE
+        self.create_pbo(width, height, self.dtype)
+        self.resize(width, height, dtype=self.dtype)
     
     def is_depth(self):
         return self.fmt == gl.GL_DEPTH_COMPONENT
@@ -67,8 +71,24 @@ class Texture:
     @property
     def aspect(self):
         return self.width / self.height
+    
+    def create_pbo(self, width, height, dtype):
+        self.pbo = gl.GLuint()
+        gl.glGenBuffers(1, self.pbo)
+        gl.glBindBuffer(gl.GL_PIXEL_UNPACK_BUFFER, self.pbo)
+        gl_data = np.zeros((height, width, self.dim), dtype=_gl_to_numpy[dtype])
+        gl.glBufferData(gl.GL_PIXEL_UNPACK_BUFFER, gl_data.nbytes, gl_data.ctypes.data, gl.GL_DYNAMIC_DRAW)
+        gl.glBindBuffer(gl.GL_PIXEL_UNPACK_BUFFER, 0)
+        if self.cuda_available:
+            self.cuda_pbo = warp.RegisteredGLBuffer(
+                self.pbo,
+                warp.get_cuda_device(),
+                flags=warp.RegisteredGLBuffer.WRITE_DISCARD,
+            )
 
     def resize(self, width: int, height: int, dtype: int = gl.GL_FLOAT):
+        if self.width == width and self.height == height and self.dtype == dtype:
+            return
         if self.tex is not None:
             del self.tex
         self.tex = image.Texture.create(width=width, height=height, fmt=self.fmt, internalformat=self.internal_format)
@@ -87,66 +107,64 @@ class Texture:
         else:
             raise NotImplementedError(f"{dtype} not implemented")
 
-
-        # gl.glBindBuffer(gl.GL_PIXEL_UNPACK_BUFFER, self.pbo)
-        # gl.glBufferData(
-        #     gl.GL_PIXEL_UNPACK_BUFFER,
-        #     width * height * self.dim * self.element_size,
-        #     None,
-        #     gl.GL_DYNAMIC_DRAW,
-        # )
-        # gl.glBindBuffer(gl.GL_PIXEL_UNPACK_BUFFER, 0)
         self.dtype = dtype
 
-    def copy_from_host(self, data: np.ndarray):
+        gl.glBindBuffer(gl.GL_PIXEL_UNPACK_BUFFER, self.pbo)
+        gl_data = np.zeros((height, width, self.dim), dtype=_gl_to_numpy[dtype])
+        gl.glBufferData(gl.GL_PIXEL_UNPACK_BUFFER, gl_data.nbytes, gl_data.ctypes.data, gl.GL_DYNAMIC_DRAW)
+        gl.glBindBuffer(gl.GL_PIXEL_UNPACK_BUFFER, 0)
 
-        dtype = gl.GL_FLOAT
-        if data.dtype == np.float32:
-            dtype = gl.GL_FLOAT
-        elif data.dtype == np.uint8:
-            dtype = gl.GL_UNSIGNED_BYTE
-        else:
-            raise NotImplementedError(f"{data.dtype} cannot be uploaded")
+
+    def copy_from_host(self, data: np.ndarray):
+        assert data.dtype in _numpy_to_gl, f"{data.dtype} not supported - {list(_numpy_to_gl.keys())}"
 
         if self.is_depth():
             assert data.ndim == 2 and data.dtype == np.float32
         else:
             assert data.ndim == 3 and data.shape[2] == self.dim
 
-        w = data.shape[1]
-        h = data.shape[0]
-        if w != self.width or h != self.height or self.dtype != dtype:
-            self.resize(w, h, dtype)
+        h, w = data.shape[:2]
+        self.resize(w, h, dtype=_numpy_to_gl[data.dtype])
 
-        gl.glActiveTexture(gl.GL_TEXTURE0)
-        gl.glBindTexture(gl.GL_TEXTURE_2D, self.id)
-        gl.glTexSubImage2D(
-            gl.GL_TEXTURE_2D,
-            0,
-            0,
-            0,
-            self.width,
-            self.height,
-            self.fmt,
-            self.dtype,
-            data.ctypes.data,
+        gl.glBindBuffer(gl.GL_PIXEL_UNPACK_BUFFER, self.pbo)
+        gl.glBufferData(gl.GL_PIXEL_UNPACK_BUFFER, data.nbytes, data.ctypes.data, gl.GL_DYNAMIC_DRAW)
+        gl.glBindBuffer(gl.GL_PIXEL_UNPACK_BUFFER, 0)
+        self._pbo_to_texture()
+
+        # gl.glActiveTexture(gl.GL_TEXTURE0)
+        # gl.glBindTexture(gl.GL_TEXTURE_2D, self.id)
+        # gl.glTexSubImage2D(
+        #     gl.GL_TEXTURE_2D,
+        #     0,
+        #     0,
+        #     0,
+        #     self.width,
+        #     self.height,
+        #     self.fmt,
+        #     self.dtype,
+        #     data.ctypes.data,
+        # )
+        # gl.glBindTexture(gl.GL_TEXTURE_2D, 0)
+
+    def copy_from_device(self, data: torch.Tensor):
+        data = warp.from_torch(data)
+        assert self.cuda_available, "CUDA not available"
+        assert data.dtype in _warp_to_gl, f"{data.dtype} not supported"
+
+        if self.is_depth():
+            assert data.ndim == 2 and data.dtype == np.float32
+        else:
+            assert data.ndim == 3 and data.shape[2] == self.dim
+
+        h, w = data.shape[:2]
+        self.resize(w, h, _warp_to_gl[data.dtype])
+        image = self.cuda_pbo.map(
+            dtype=data.dtype, 
+            shape=(self.height * self.width * self.dim,)
         )
-        gl.glBindTexture(gl.GL_TEXTURE_2D, 0)
-
-    # def copy_from_device(self, data: torch.Tensor):
-    #     raise NotImplementedType()
-    # assert data.shape[2] == 3
-    # w = data.shape[1]
-    # h = data.shape[0]
-    # if w != self.width or h != self.height:
-    #     self.resize(w, h)
-    # image = self.cuda_pbo.map(
-    #     dtype=wp.float32, shape=(self.height * self.width * self.dim,)
-    # )
-    # image_torch = wp.to_torch(image)
-    # image_torch.copy_(data.flatten())
-    # self.cuda_pbo.unmap()
-    # self._pbo_to_texture()
+        warp.copy(image, data)
+        self.cuda_pbo.unmap()
+        self._pbo_to_texture()
 
     def _pbo_to_texture(self):
         # Copy from pbo to texture
@@ -175,6 +193,3 @@ class Texture:
         )
         gl.glBindBuffer(gl.GL_PIXEL_UNPACK_BUFFER, 0)
         gl.glBindTexture(gl.GL_TEXTURE_2D, 0)
-
-    def draw(self, width: int, height: int):
-        self.tex.blit(0, 0, z=0, width=width, height=height)

@@ -71,6 +71,13 @@ class CustomWindow(marsoom.Window):
             opacity=torch.rand(num_ellipses, 1, dtype=torch.float32).cuda()
         )
 
+        self.viewer_2d = self.create_2D_viewer(
+            "My Image Viewer",
+            pixels_to_units=get_pixels_to_meters()
+        )
+
+
+
 
 
     def draw_demo_controls(self):
@@ -106,6 +113,13 @@ class CustomWindow(marsoom.Window):
             self.ellipse_mesh_renderer.draw()
             self.ellipse_renderer.draw(5.0)
             gl.glLineWidth(1.0)
+        
+        imgui.begin("2D Viewer")
+        sample_image = torch.randn(480, 640, 3, dtype=torch.float32, device="cuda")
+        self.viewer_2d.update_image(sample_image)
+        self.viewer_2d.draw()
+        self.viewer_2d.axis(unit=marsoom.eViewerUnit.UNIT, scale=0.1)
+        imgui.end()
 
         guizmo.set_id(0)
         self.viewer.process_nav()

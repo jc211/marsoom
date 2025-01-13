@@ -41,7 +41,7 @@ class Texture:
 
         self.cuda_available = warp.context.is_cuda_available()
         self.cuda_pbo = None
-        self.tex = image.Texture.create(width=width, height=height, fmt=self.fmt, internalformat=self.internal_format)
+        self.tex = None
         self.dtype = gl.GL_UNSIGNED_BYTE
         self.create_pbo(width, height, self.dtype)
         self.resize(width, height, dtype=self.dtype)
@@ -62,11 +62,11 @@ class Texture:
 
     @property
     def width(self):
-        return self.tex.width
+        return self.tex.width if self.tex is not None else 0
 
     @property
     def height(self):
-        return self.tex.height
+        return self.tex.height if self.tex is not None else 0
 
     @property
     def aspect(self):

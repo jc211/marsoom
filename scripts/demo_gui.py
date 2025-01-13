@@ -121,10 +121,24 @@ class CustomWindow(marsoom.Window):
         self.sc.update_depth(depth)
         self.sc.color_texture_id = self.tex_color.tex.id
 
+        self.draw_overlay = False
+        self.overlay_tex = marsoom.texture.Texture(width=width, height=height, fmt=pyglet.gl.GL_RGB, internal_format=pyglet.gl.GL_RGBA)
+        image = np.random.rand(height, width, 3)*255
+        image = image.astype(np.uint8)
+        print(image)
+        self.overlay_tex.copy_from_host(
+            image)
+
+        self.overlay = marsoom.Overlay(self.overlay_tex.id, alpha=0.5)
 
     
     def draw_demo_controls(self):
         imgui.begin("Debug")
+        _, self.draw_overlay = imgui.checkbox("Draw Overlay", self.draw_overlay)
+        c, new_alpha = imgui.slider_float("Overlay Alpha", self.overlay.alpha, 0.0, 1.0)
+        if c:
+            self.overlay.alpha = new_alpha
+
         _, self.viewer.orthogonal = imgui.checkbox("Orthogonal", self.viewer.orthogonal)
         _, self.viewer.fl_x = imgui.input_float("Focal Length X", self.viewer.fl_x)
         _, self.viewer.fl_y = imgui.input_float("Focal Length Y", self.viewer.fl_y)
@@ -149,6 +163,8 @@ class CustomWindow(marsoom.Window):
             self.batch.draw()
             self.camera_batch.draw()    
             self.batch_sc.draw()
+            if self.draw_overlay:
+                self.overlay.draw()
 
         guizmo.set_id(0)
         self.manip_3d_object = self.viewer.manipulate(

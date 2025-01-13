@@ -29,6 +29,7 @@ class CustomWindow(marsoom.Window):
         self.batch = pyglet.graphics.Batch()
         self.grid = marsoom.grid.Grid(grid_spacing=0.1, grid_count=10, batch=self.batch)
 
+
         points = torch.randn(100, 3, dtype=torch.float32)
         colors = torch.rand(100, 4, dtype=torch.float32)
         self.points = marsoom.cuda.PointRenderer()

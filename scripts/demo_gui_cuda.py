@@ -4,6 +4,7 @@ import numpy as np
 import torch
 
 from pyglet.math import Mat4
+import pyglet.gl as gl
 import pyglet
 
 import open3d as o3d
@@ -41,17 +42,31 @@ class CustomWindow(marsoom.Window):
         )
 
         self.ellipse_renderer = marsoom.cuda.EllipseRenderer()
+        self.ellipse_mesh_renderer = marsoom.cuda.InstancedMeshRenderer.from_open3d_mesh(
+            mesh=o3d.geometry.TriangleMesh.create_sphere(radius=0.1),
+        )
         num_ellipses = 100
         positions = torch.rand(num_ellipses, 3, dtype=torch.float32).cuda()
         positions[:, 0] += -1.0
+        quats = torch.zeros(num_ellipses, 4, dtype=torch.float32).cuda()
+        quats[:, 0] = 1.0
+        scales = torch.rand(num_ellipses, 3, dtype=torch.float32).cuda()* 0.2
+
         colors = torch.rand(num_ellipses, 3, dtype=torch.float32).cuda()
-        cov2d = torch.zeros(num_ellipses, 3, dtype=torch.float32).cuda()
-        cov2d[:, 0] = 100.0
-        cov2d[:, 2] = 100.0
+        conics = torch.zeros(num_ellipses, 3, dtype=torch.float32).cuda()
+        conics[:, 0] = 1/100.0
+        conics[:, 2] = 1/100.0
+        self.ellipse_mesh_renderer.update(
+            colors=colors,
+            positions=positions,
+            rotations=quats,
+            scaling=scales
+        )
+        # line size
         self.ellipse_renderer.update(
             positions=positions,
             colors=colors,
-            cov2D=cov2d,
+            conics=conics,
             opacity=torch.rand(num_ellipses, 1, dtype=torch.float32).cuda()
         )
 
@@ -87,7 +102,9 @@ class CustomWindow(marsoom.Window):
             self.batch.draw()
             # self.points.draw()
             # self.mesh_renderer.draw()
-            self.ellipse_renderer.draw()
+            self.ellipse_mesh_renderer.draw()
+            self.ellipse_renderer.draw(5.0)
+            gl.glLineWidth(1.0)
 
         guizmo.set_id(0)
         self.viewer.process_nav()

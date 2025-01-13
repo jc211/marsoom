@@ -45,10 +45,10 @@ class MeshGroup(Group):
 
     mat4 X(vec4 q, vec3 p, vec3 s) {
         q = normalize(q);
+        float w = q.x;
         float x = q.y;
         float y = q.z;
         float z = q.w;
-        float w = q.x;
         return mat4(
             s.x * (1.0 - 2.0 * y * y - 2.0 * z * z), s.x * (2.0 * x * y + 2.0 * w * z), s.x * (2.0 * x * z - 2.0 * w * y), 0.0,
             s.y * (2.0 * x * y - 2.0 * w * z), s.y * (1.0 - 2.0 * x * x - 2.0 * z * z), s.y * (2.0 * y * z + 2.0 * w * x), 0.0,
@@ -266,10 +266,30 @@ class InstancedMeshRenderer:
         self.group.sun_direction = value
 
 
+    def resize(self, num_instances: int):
+        self.domain.resize(num_instances)
+    
+    def update_positions(self, positions: torch.Tensor):
+        self.resize(positions.shape[0])
+        self.domain.update_buffer("position", positions)
+    
+    def update_quats(self, quats: torch.Tensor):
+        # SCALAR FIRST
+        self.resize(quats.shape[0])
+        self.domain.update_buffer("rotation", quats)
+    
+    def update_scales(self, scales: torch.Tensor):
+        self.resize(scales.shape[0])
+        self.domain.update_buffer("scaling", scales)
+    
+    def update_colors(self, colors: torch.Tensor):
+        self.resize(colors.shape[0])
+        self.domain.update_buffer("color", colors)
+
     def update(
         self,
         positions: torch.Tensor,
-        rotations: Optional[torch.Tensor] = None,
+        rotations: Optional[torch.Tensor] = None, # SCALAR FIRST
         scaling: Optional[torch.Tensor] = None,
         colors: Optional[torch.Tensor] = None,
     ):

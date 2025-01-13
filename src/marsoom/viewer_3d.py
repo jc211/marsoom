@@ -461,6 +461,7 @@ class Viewer3D:
     def x_vw(self, standard: Literal['opencv', 'blender'] = 'blender') -> np.ndarray:
         x_vw = self._view_matrix.reshape((4, 4)).T
         if standard == 'opencv':
+            x_vw = x_vw.copy()
             x_vw[1] = -x_vw[1]
             x_vw[2] = -x_vw[2]
         return x_vw

@@ -3,7 +3,7 @@ import math
 import sys
 from contextlib import contextmanager
 from dataclasses import dataclass
-from typing import Optional, Tuple
+from typing import Optional, Tuple, Literal
 
 import numpy as np
 import pyglet
@@ -458,12 +458,15 @@ class Viewer3D:
     def aspect(self) -> float:
         return self.screen_width / self.screen_height
 
-    def x_vw(self) -> np.ndarray:
+    def x_vw(self, standard: Literal['opencv', 'blender'] = 'blender') -> np.ndarray:
         x_vw = self._view_matrix.reshape((4, 4)).T
+        if standard == 'opencv':
+            x_vw[1] = -x_vw[1]
+            x_vw[2] = -x_vw[2]
         return x_vw
 
-    def x_wv(self) -> np.ndarray:
-        x_vw = self.x_vw()
+    def x_wv(self, standard: Literal['opencv', 'blender'] = 'blender') -> np.ndarray:
+        x_vw = self.x_vw(standard=standard)
         x_wv = np.linalg.inv(x_vw)
         return x_wv
 

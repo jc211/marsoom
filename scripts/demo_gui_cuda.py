@@ -12,6 +12,7 @@ import open3d as o3d
 import marsoom
 from marsoom import imgui, guizmo
 
+import marsoom.cuda.ellipse_renderer_2
 import marsoom.grid
 import marsoom.texture
 import marsoom.cuda
@@ -42,16 +43,19 @@ class CustomWindow(marsoom.Window):
             positions=positions,
         )
 
-        self.ellipse_renderer = marsoom.cuda.EllipseRenderer()
+        self.ellipse_renderer = marsoom.cuda.ellipse_renderer_2.EllipseRenderer()
         self.ellipse_mesh_renderer = marsoom.cuda.InstancedMeshRenderer.from_open3d_mesh(
             mesh=o3d.geometry.TriangleMesh.create_sphere(radius=0.1),
         )
         num_ellipses = 100
         positions = torch.rand(num_ellipses, 3, dtype=torch.float32).cuda()
         positions[:, 0] += -1.0
-        quats = torch.zeros(num_ellipses, 4, dtype=torch.float32).cuda()
-        quats[:, 0] = 1.0
+        # quats = torch.zeros(num_ellipses, 4, dtype=torch.float32).cuda()
+        # quats[:, 0] = 1.0
+        quats = torch.randn(num_ellipses, 4, dtype=torch.float32).cuda()
+        quats = torch.nn.functional.normalize(quats, p=2, dim=1)
         scales = torch.rand(num_ellipses, 3, dtype=torch.float32).cuda()* 0.2
+        # scales = torch.ones(num_ellipses, 3, dtype=torch.float32).cuda() * 0.2
 
         colors = torch.rand(num_ellipses, 3, dtype=torch.float32).cuda()
         conics = torch.zeros(num_ellipses, 3, dtype=torch.float32).cuda()
@@ -67,7 +71,9 @@ class CustomWindow(marsoom.Window):
         self.ellipse_renderer.update(
             positions=positions,
             colors=colors,
-            conics=conics,
+            # conics=conics,
+            quats=quats,
+            scales=scales,
             opacity=torch.rand(num_ellipses, 1, dtype=torch.float32).cuda()
         )
 
@@ -85,6 +91,7 @@ class CustomWindow(marsoom.Window):
         _, self.viewer.orthogonal = imgui.checkbox("Orthogonal", self.viewer.orthogonal)
         _, self.viewer.fl_x = imgui.input_float("Focal Length X", self.viewer.fl_x)
         _, self.viewer.fl_y = imgui.input_float("Focal Length Y", self.viewer.fl_y)
+        _, self.viewer.near = imgui.slider_float("Near", self.viewer.near, 0.01, 1.0)
         if imgui.button("Top View"):
             self.viewer.top_view()
         if imgui.button("Front View"):
@@ -111,7 +118,7 @@ class CustomWindow(marsoom.Window):
             # self.points.draw()
             # self.mesh_renderer.draw()
             self.ellipse_mesh_renderer.draw()
-            self.ellipse_renderer.draw(5.0)
+            self.ellipse_renderer.draw(10.0)
             gl.glLineWidth(1.0)
         
         imgui.begin("2D Viewer")

@@ -39,29 +39,20 @@ vec2 px2ndc(vec2 pos) {
     return pos;
 }
 
-mat3 quat_to_rotmat(vec4 quat) {
-    float w = quat.x, x = quat.y, y = quat.z, z = quat.w; 
-    // normalize
-    float inv_norm = inversesqrt(x * x + y * y + z * z + w * w);
-    x *= inv_norm;
-    y *= inv_norm;
-    z *= inv_norm;
-    w *= inv_norm;
-    float x2 = x * x, y2 = y * y, z2 = z * z;
-    float xy = x * y, xz = x * z, yz = y * z;
-    float wx = w * x, wy = w * y, wz = w * z;
-    return mat3(
-        (1.0 - 2.0 * (y2 + z2)),
-        (2.0 * (xy + wz)),
-        (2.0 * (xz - wy)), // 1st col
-        (2.0 * (xy - wz)),
-        (1.0 - 2.0 * (x2 + z2)),
-        (2.0 * (yz + wx)), // 2nd col
-        (2.0 * (xz + wy)),
-        (2.0 * (yz - wx)),
-        (1.0 - 2.0 * (x2 + y2)) // 3rd col
-    );
+mat3 quat_to_rotmat(vec4 quat)
+{
+  // Normalize quaternion (required?)
+  vec4 q = quat / length(quat);
+  float r = q.x;
+  float x = q.y;
+  float y = q.z;
+  float z = q.w;
+
+  return mat3(1. - 2. * (y * y + z * z), 2. * (x * y + r * z), 2. * (x * z - r * y),
+    2. * (x * y - r * z), 1. - 2. * (x * x + z * z), 2. * (y * z + r * x),
+    2. * (x * z + r * y), 2. * (y * z - r * x), 1. - 2. * (x * x + y * y));
 }
+
 
 mat3 quat_scale_to_covariance(
     mat3 R, 
@@ -76,15 +67,13 @@ mat3 quat_scale_to_covariance(
 }
 
 mat3 projection_jacobian(vec4 p) {
-    float flx = window.projection[0][0]*window.projection[3][2];
-    float fly = window.projection[1][1]*window.projection[3][2];
-    float tx = window.view[3][0];
-    float ty = window.view[3][1];
-    float z = p.z/p.w;  
+    float flx = window.projection[0][0];
+    float fly = window.projection[1][1];
+    float z = p.z;  
     return mat3(
         flx/z, 0.0, 0.0,
         0.0, fly/z, 0.0,
-        -flx*tx/(z*z), -fly*ty/(z*z), 0.0
+        -flx*p.x/(z*z), -fly*p.y/(z*z), 0.0
     );
 }
 
@@ -114,7 +103,9 @@ vec2 scale_by_cov(mat2 cov2d, vec2 p) {
 
 void main() {
     vec4 pos_camera = window.view * vec4(pos_, 1.0);
+    pos_camera /= pos_camera.w;
     vec4 pos = window.projection * pos_camera;
+    pos /= pos.w;
     mat3 R = quat_to_rotmat(quat_);
 
     mat3 J = projection_jacobian(pos_camera);
@@ -123,8 +114,7 @@ void main() {
 
     mat3 cov2d_ = J * W * cov3d * transpose(W) * transpose(J);
     mat2 cov2d = mat2(cov2d_);
-    vec2 circle_pos = scale_by_cov(cov2d, circle_pos_);
-    pos /= pos.w;
+    vec2 circle_pos = scale_by_cov(cov2d, circle_pos_/10.0); // I dont know why this is off by a factor of 10..
     pos.xy = pos.xy + circle_pos;
     // bring to front
     gl_Position = pos;

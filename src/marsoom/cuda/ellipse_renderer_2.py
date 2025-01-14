@@ -114,7 +114,7 @@ void main() {
 
     mat3 cov2d_ = J * W * cov3d * transpose(W) * transpose(J);
     mat2 cov2d = mat2(cov2d_);
-    vec2 circle_pos = scale_by_cov(cov2d, circle_pos_/10.0); // I dont know why this is off by a factor of 10..
+    vec2 circle_pos = scale_by_cov(cov2d, circle_pos_);
     pos.xy = pos.xy + circle_pos;
     // bring to front
     gl_Position = pos;

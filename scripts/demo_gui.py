@@ -102,23 +102,26 @@ class CustomWindow(marsoom.Window):
         # # self.points_3d = marsoom.Points(points=points, colors=colors, batch=self.batch_sc)
 
 
-        self.batch_sc = pyglet.graphics.Batch()
+        # self.batch_sc = pyglet.graphics.Batch()
 
 
         self.camera_1.update_K(K, width=color.shape[1], height=color.shape[0])
 
         width = color.shape[1]
         height = color.shape[0]
-        self.sc = marsoom.StructuredPointCloud(width, height, batch=self.batch_sc)
+        self.sc = marsoom.StructuredPointCloud(width, height)
         self.sc.update_intrinsics(K[0, 0], K[1, 1], K[0, 2], K[1, 2])
         # self.camera_1.update_image((color/255.0).astype(np.float32))
         self.camera_1.update_image(color)
-        self.tex_color = marsoom.texture.Texture(width=width, height=height, fmt=pyglet.gl.GL_BGR, internal_format=pyglet.gl.GL_RGBA)
+        self.tex_color = marsoom.texture.Texture(
+            width=width, height=height, fmt=pyglet.gl.GL_BGR, internal_format=pyglet.gl.GL_RGBA)
         # self.tex_color.copy_from_host((color/255.0).astype(np.float32))
         self.tex_color.copy_from_host(color)
-        depth[depth == 65535] = 0
-        depth = depth.astype(np.float32)*depth_scale
-        self.sc.update_depth(depth)
+        # depth[depth == 65535] = 0
+        # depth = depth.astype(np.float32)*depth_scale
+        self.sc.depth_scale = depth_scale
+        self.depth = depth
+        self.sc.update_depth(self.depth)
         self.sc.color_texture_id = self.tex_color.tex.id
 
         self.draw_overlay = False
@@ -157,10 +160,14 @@ class CustomWindow(marsoom.Window):
 
         imgui.begin("3D Drawing")   
         pyglet.gl.glPointSize(6)
+
+        # self.depth += np.random.randn(*self.depth.shape).astype(np.float32)*0.001
+        self.sc.update_depth(self.depth)
+
         with self.viewer.draw(in_imgui_window=True) as ctx:
-            self.batch.draw()
+            # self.batch.draw()
             self.camera_batch.draw()    
-            self.batch_sc.draw()
+            self.sc.draw()
             if self.draw_overlay:
                 self.overlay.draw()
 

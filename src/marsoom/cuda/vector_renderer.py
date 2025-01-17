@@ -98,5 +98,5 @@ class VectorRenderer:
         self.domain.bind()
         gl.glLineWidth(line_width)
         self.program["vector_scale"] = vector_scale
-        gl.glDrawArrays(gl.GL_POINTS, start_idx, self._size)
+        gl.glDrawArrays(gl.GL_POINTS, start_idx, self.domain.num_elements)
         gl.glLineWidth(1.0)

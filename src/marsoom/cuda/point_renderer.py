@@ -1,14 +1,8 @@
-import ctypes
-from typing import Optional
-
-import warp as wp
 import torch
 from pyglet import gl
 from pyglet.graphics import Group, Batch
 from pyglet.graphics.shader import Shader, ShaderProgram
-from pyglet.graphics import vertexbuffer, vertexarray
 
-from marsoom.context_3d import Context3D
 
 from .cuda_vertex_domain import cuda_vertex_list_create
 

@@ -987,8 +987,8 @@ packages:
   requires_python: '>=3.9'
 - pypi: .
   name: marsoom
-  version: 2.0.2
-  sha256: 81e865bc6717964c81ee7d093703fc59f065890aefd38d19f38b35663af4a0d0
+  version: 2.0.14
+  sha256: 0409cc149bd6eba6271a233add4254404cd900abb12899864be72fa97d85611d
   requires_dist:
   - imgui-bundle>=1.6.1
   - pyglet

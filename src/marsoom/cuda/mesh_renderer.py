@@ -3,17 +3,11 @@ from dataclasses import dataclass
 
 import numpy as np
 import torch
-import warp as wp
-import ctypes
-from pathlib import Path
 
-import open3d as o3d
-from pyglet.graphics.shader import Shader, ShaderProgram
+from pyglet.graphics.shader import ShaderProgram
 from pyglet import gl
 from pyglet.graphics import Group
-from pyglet.graphics import vertexbuffer, vertexarray
 
-from marsoom.context_3d import Context3D
 from .cuda_vertex_domain import cuda_vertex_list_create
 
 
@@ -219,10 +213,10 @@ class MeshGroup(Group):
 
 class InstancedMeshRenderer:
 
-    @staticmethod
-    def from_open3d_mesh(mesh: o3d.geometry.TriangleMesh, default_color: np.ndarray = np.array([1.0, 0.0, 0.0])):
-        mesh.compute_vertex_normals()   
-        return InstancedMeshRenderer(np.array(mesh.vertices), np.array(mesh.triangles), np.array(mesh.vertex_normals), default_color)
+    # @staticmethod
+    # def from_open3d_mesh(mesh: o3d.geometry.TriangleMesh, default_color: np.ndarray = np.array([1.0, 0.0, 0.0])):
+    #     mesh.compute_vertex_normals()   
+    #     return InstancedMeshRenderer(np.array(mesh.vertices), np.array(mesh.triangles), np.array(mesh.vertex_normals), default_color)
 
     def __init__(self, 
                  vertices: np.ndarray,

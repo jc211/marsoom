@@ -487,7 +487,7 @@ class Viewer3D:
 
         object_matrix = guizmo.Matrix16(object_matrix.T.flatten())
 
-        guizmo.manipulate(
+        changed = guizmo.manipulate(
             view=view_matrix,
             projection=proj_matrix,
             operation=operation,
@@ -495,7 +495,7 @@ class Viewer3D:
             object_matrix=object_matrix,
         )
         res_matrix = np.array(object_matrix.values).reshape((4, 4)).T
-        return res_matrix
+        return changed, res_matrix
 
     def reset_camera(self):
         self._camera_pos = PyVec3(0.0, -2.0, 0.4)

@@ -4,11 +4,13 @@ import torch
 import pyglet
 from pyglet.graphics import Batch, Group
 from pyglet.math import Mat4
+import pyglet.gl as gl
 
 from marsoom.texture import Texture
 from marsoom.image_quad import ImageQuad
 import marsoom.utils
 from marsoom.line_model import LineModel
+
 
 class CameraWireframe(LineModel):
     def __init__(
@@ -25,9 +27,11 @@ class CameraWireframe(LineModel):
         self.width = width
         self.height = height
         self.z_offset = z_offset
-        self.frame_color = frame_color  
-        super().__init__(self._get_indices(), self._get_vertices(), self._get_colors(), group, batch)
-    
+        self.frame_color = frame_color
+        super().__init__(
+            self._get_indices(), self._get_vertices(), self._get_colors(), group, batch
+        )
+
     def update_K(self, K: np.ndarray, width: int, height: int):
         if np.allclose(self.K, K):
             return
@@ -36,21 +40,21 @@ class CameraWireframe(LineModel):
         self.height = height
         self.position = self._get_vertices()
         self._update_vertices()
-    
+
     def update_z_offset(self, z_offset: float):
         if self.z_offset == z_offset:
             return
         self.z_offset = z_offset
         self.position = self._get_vertices()
         self._update_vertices()
-    
+
     def update_frame_color(self, frame_color: Tuple[float, float, float, float]):
         if self.frame_color == frame_color:
             return
         self.frame_color = frame_color
         self.colors = self._get_colors()
         self._update_colors()
-    
+
     def _get_vertices(self):
         K = self.K
         z_offset = self.z_offset
@@ -59,10 +63,12 @@ class CameraWireframe(LineModel):
         offset_x = self.width // 2 - cx
         offset_y = self.height // 2 - cy
 
-        top_left = np.array([0.0+offset_x, 0.0, 1.0], dtype=np.float32)
-        top_right = np.array([self.width+offset_x, 0.0, 1.0], dtype=np.float32)
-        bot_left = np.array([0.0, self.height+offset_y, 1.0], dtype=np.float32)
-        bot_right = np.array([self.width+offset_x, self.height+offset_y, 1.0], dtype=np.float32)
+        top_left = np.array([0.0 + offset_x, 0.0, 1.0], dtype=np.float32)
+        top_right = np.array([self.width + offset_x, 0.0, 1.0], dtype=np.float32)
+        bot_left = np.array([0.0, self.height + offset_y, 1.0], dtype=np.float32)
+        bot_right = np.array(
+            [self.width + offset_x, self.height + offset_y, 1.0], dtype=np.float32
+        )
 
         Kinv = np.linalg.inv(K)
         # flip the y and z
@@ -117,7 +123,7 @@ class CameraWireframe(LineModel):
         )
 
         return positions
-    
+
     def _get_indices(self):
         index = (
             0,
@@ -143,9 +149,9 @@ class CameraWireframe(LineModel):
             8,
             9,
             10,
-        ) 
+        )
         return index
-    
+
     def _get_colors(self):
         frame_color = self.frame_color
         frame_color = np.array(frame_color, dtype=np.float32)
@@ -166,7 +172,8 @@ class CameraWireframe(LineModel):
                 z_axis_color,
             ],
         ).flatten()
-        return colors   
+        return colors
+
 
 class CameraWireframeWithImage:
     def __init__(
@@ -178,6 +185,7 @@ class CameraWireframeWithImage:
         frame_color: Tuple[float, float, float, float] = (0.2, 0.2, 0.2, 0.1),
         alpha: float = 1.0,
         texture: Texture | None = None,
+        texture_fmt=gl.GL_RGB,
         group: Group | None = None,
         batch: Batch | None = None,
     ):
@@ -187,19 +195,19 @@ class CameraWireframeWithImage:
         self.batch = batch
 
         self.camera_wireframe = CameraWireframe(
-            K=K, 
-            width=width, 
+            K=K,
+            width=width,
             height=height,
-            z_offset=z_offset, 
+            z_offset=z_offset,
             frame_color=frame_color,
-            group=group, 
-            batch=batch
+            group=group,
+            batch=batch,
         )
 
         if texture:
             self.texture = texture
         else:
-            self.texture = Texture(width, height)
+            self.texture = Texture(width, height, texture_fmt)
 
         self.image_quad = ImageQuad(
             tex_id=self.texture.id,
@@ -209,10 +217,9 @@ class CameraWireframeWithImage:
             bot_left=self.camera_wireframe.bot_left,
             alpha=alpha,
             group=group,
-            batch=batch
+            batch=batch,
         )
 
-    
     @property
     def matrix(self) -> Mat4:
         return self.camera_wireframe.matrix
@@ -221,37 +228,41 @@ class CameraWireframeWithImage:
     def matrix(self, value: Mat4) -> None:
         self.camera_wireframe.matrix = value
         self.image_quad.matrix = value
-    
+
     @property
     def alpha(self) -> float:
         return self.image_quad.alpha
-    
+
     @alpha.setter
     def alpha(self, value: float) -> None:
         self.image_quad.alpha = value
-    
+
     def set_alpha(self, alpha: float):
         self.image_quad.alpha = alpha
-    
+
     def set_texture_id(self, tex_id: int):
         if self.image_quad.tex_id == tex_id:
             return
         self.image_quad.tex_id = tex_id
-    
+
     def update_K(self, K: np.ndarray, width: int, height: int):
         self.camera_wireframe.update_K(K, width, height)
-        self.image_quad.update(top_left=self.camera_wireframe.top_left,
-                               top_right=self.camera_wireframe.top_right,
-                               bot_right=self.camera_wireframe.bot_right,
-                               bot_left=self.camera_wireframe.bot_left)
-    
+        self.image_quad.update(
+            top_left=self.camera_wireframe.top_left,
+            top_right=self.camera_wireframe.top_right,
+            bot_right=self.camera_wireframe.bot_right,
+            bot_left=self.camera_wireframe.bot_left,
+        )
+
     def update_z_offset(self, z_offset: float):
         self.camera_wireframe.update_z_offset(z_offset)
-        self.image_quad.update(top_left=self.camera_wireframe.top_left,
-                               top_right=self.camera_wireframe.top_right,
-                               bot_right=self.camera_wireframe.bot_right,
-                               bot_left=self.camera_wireframe.bot_left)
-    
+        self.image_quad.update(
+            top_left=self.camera_wireframe.top_left,
+            top_right=self.camera_wireframe.top_right,
+            bot_right=self.camera_wireframe.bot_right,
+            bot_left=self.camera_wireframe.bot_left,
+        )
+
     def update_frame_color(self, frame_color: Tuple[float, float, float, float]):
         self.camera_wireframe.update_frame_color(frame_color)
 

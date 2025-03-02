@@ -27,7 +27,11 @@ guizmo = imguizmo.im_guizmo
 
 
 def get_default_shader() -> ShaderProgram:
-    return ShaderProgram(Shader(default_vertex_source, "vertex"), Shader(default_fragment_source, "fragment"))
+    return ShaderProgram(
+        Shader(default_vertex_source, "vertex"),
+        Shader(default_fragment_source, "fragment"),
+    )
+
 
 default_vertex_source = """#version 150 core
     in vec4 position;
@@ -157,12 +161,15 @@ class Viewer3D:
         # self._setup_framebuffer()
 
         self._default_shader = get_default_shader()
-        self._light_block = self._default_shader.uniform_blocks["LightBlock"].create_ubo()
-        self._viewport_block = self._default_shader.uniform_blocks["ViewportBlock"].create_ubo()
+        self._light_block = self._default_shader.uniform_blocks[
+            "LightBlock"
+        ].create_ubo()
+        self._viewport_block = self._default_shader.uniform_blocks[
+            "ViewportBlock"
+        ].create_ubo()
         with self._light_block as ubo:
             ubo.lightColor[:] = (1.0, 1.0, 1.0)
             ubo.sunDirection[:] = (0.0, 0.0, 1.0)
-        
 
         self.reset_camera()
         self.window = window
@@ -184,10 +191,22 @@ class Viewer3D:
         self._frame_vertices = np.array(
             [
                 # Positions  TexCoords
-                -1.0, -1.0, 0.0, 0.0, 
-                1.0, -1.0, 1.0, 0.0, 
-                1.0, 1.0, 1.0, 1.0, 
-                -1.0, 1.0, 0.0, 1.0,
+                -1.0,
+                -1.0,
+                0.0,
+                0.0,
+                1.0,
+                -1.0,
+                1.0,
+                0.0,
+                1.0,
+                1.0,
+                1.0,
+                1.0,
+                -1.0,
+                1.0,
+                0.0,
+                1.0,
             ],
             dtype=np.float32,
         )
@@ -263,7 +282,7 @@ class Viewer3D:
         if self._frame_depth_texture is None:
             self._frame_depth_texture = gl.GLuint()
             gl.glGenTextures(1, self._frame_depth_texture)
-        
+
         with self._viewport_block as ubo:
             ubo.width[0] = ctypes.c_float(float(self.screen_width))
             ubo.height[0] = ctypes.c_float(float(self.screen_height))
@@ -361,11 +380,11 @@ class Viewer3D:
             gl.GL_DYNAMIC_DRAW,
         )
         gl.glBindBuffer(gl.GL_PIXEL_PACK_BUFFER, 0)
-    
+
     def set_sun_direction(self, sun_direction: np.ndarray):
         with self._light_block as ubo:
             ubo.sunDirection[:] = sun_direction
-    
+
     def set_light_color(self, light_color: np.ndarray):
         with self._light_block as ubo:
             ubo.lightColor[:] = light_color
@@ -417,7 +436,11 @@ class Viewer3D:
     def gl_projectionT(self) -> np.ndarray:
         if self.orthogonal:
             return ortho_matrix_T(
-                self.ortho_zoom, self.screen_width, self.screen_height, self.near, self.far
+                self.ortho_zoom,
+                self.screen_width,
+                self.screen_height,
+                self.near,
+                self.far,
             )
         else:
             return convert_K_to_projection_matrixT(
@@ -446,21 +469,24 @@ class Viewer3D:
     def aspect(self) -> float:
         return self.screen_width / self.screen_height
 
-    def x_vw(self, standard: Literal['opencv', 'blender'] = 'blender') -> np.ndarray:
+    def x_vw(self, standard: Literal["opencv", "blender"] = "blender") -> np.ndarray:
         x_vw = self._view_matrix.reshape((4, 4)).T
-        if standard == 'opencv':
-            x_vw = np.array(
-                [
-                    [1, 0, 0, 0],
-                    [0, -1, 0, 0],
-                    [0, 0, -1, 0],
-                    [0, 0, 0, 1],
-                ],
-                dtype=np.float32,
-            ) @ x_vw
+        if standard == "opencv":
+            x_vw = (
+                np.array(
+                    [
+                        [1, 0, 0, 0],
+                        [0, -1, 0, 0],
+                        [0, 0, -1, 0],
+                        [0, 0, 0, 1],
+                    ],
+                    dtype=np.float32,
+                )
+                @ x_vw
+            )
         return x_vw
 
-    def x_wv(self, standard: Literal['opencv', 'blender'] = 'blender') -> np.ndarray:
+    def x_wv(self, standard: Literal["opencv", "blender"] = "blender") -> np.ndarray:
         x_vw = self.x_vw(standard=standard)
         x_wv = np.linalg.inv(x_vw)
         return x_wv
@@ -471,7 +497,6 @@ class Viewer3D:
         operation: guizmo.OPERATION = guizmo.OPERATION.translate,
         mode: guizmo.MODE = guizmo.MODE.local,
     ):
-
         if self.in_imgui_window:
             if self.tl is not None:
                 guizmo.set_drawlist(self.window_draw_list)
@@ -659,7 +684,6 @@ class Viewer3D:
             or imgui.is_any_item_active()
             or imgui.get_io().want_capture_mouse
         )
-    
 
     @contextmanager
     def draw(self, in_imgui_window: bool = False):
@@ -682,7 +706,9 @@ class Viewer3D:
             self._setup_framebuffer()
 
         gl.glBindFramebuffer(gl.GL_FRAMEBUFFER, self._frame_fbo)
+        gl.glViewport(0, 0, self.screen_width, self.screen_height)
         gl.glClearColor(*self.background_color, 1.0)
+        gl.glClear(gl.GL_COLOR_BUFFER_BIT | gl.GL_DEPTH_BUFFER_BIT)
         self.update_projection_matrix()
         world2projT = self.world2projT().flatten()
         self.window.projection = self._projection_matrixT.flatten()
@@ -706,8 +732,6 @@ class Viewer3D:
         gl.glPolygonMode(gl.GL_FRONT_AND_BACK, gl.GL_FILL)
         gl.glBindBuffer(gl.GL_PIXEL_UNPACK_BUFFER, 0)
         gl.glBindFramebuffer(gl.GL_FRAMEBUFFER, 0)
-        gl.glClear(gl.GL_COLOR_BUFFER_BIT | gl.GL_DEPTH_BUFFER_BIT)
-        gl.glViewport(0, 0, self.screen_width, self.screen_height)
         if self.window_draw_list:
             self.tl = imgui.get_cursor_screen_pos()
             imgui.image(

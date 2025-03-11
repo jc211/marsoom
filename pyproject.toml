@@ -12,6 +12,7 @@ dependencies = [
     "numpy",
     "scipy",
     "trimesh",
+    "pyopengl"
 ]
  
 [build-system]

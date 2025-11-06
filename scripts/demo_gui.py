@@ -35,17 +35,13 @@ class CustomWindow(marsoom.Window):
         colors = np.random.rand(100, 3).astype(np.float32)
         self.points = marsoom.Points(points=points, colors=colors, batch=self.batch)
 
-        self.example_mesh_2 = pyglet.resource.model(
-            "robots/panda/meshes/link0.stl", self.batch
-        )
-        self.example_mesh_2.color = (0.0, 1.0, 0.0, 1.0)
-        self.example_mesh_2.matrix = Mat4().translate((0.0, 0.0, 1.0))
+        # self.example_mesh_2 = pyglet.model.load("robots/panda/meshes/link0.stl")
+        # self.example_mesh_2.color = (0.0, 1.0, 0.0, 1.0)
+        # self.example_mesh_2.matrix = Mat4().translate((0.0, 0.0, 1.0))
 
-        self.example_mesh_3 = pyglet.resource.model(
-            "robots/panda/meshes/link1.stl", self.batch
-        )
-        self.example_mesh_3.color = (1.0, 1.0, 0.0, 1.0)
-        self.example_mesh_3.matrix = Mat4().translate((0.0, 0.0, 0.5))
+        # self.example_mesh_3 = pyglet.model.load("robots/panda/meshes/link1.stl")
+        # self.example_mesh_3.color = (1.0, 1.0, 0.0, 1.0)
+        # self.example_mesh_3.matrix = Mat4().translate((0.0, 0.0, 0.5))
 
         self.axes_example = marsoom.Axes(batch=self.batch)
         self.axes_example.matrix = Mat4().translate((-1.0, 0.0, 0.0))

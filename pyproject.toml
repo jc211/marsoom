@@ -6,7 +6,7 @@ description = "A 3D drawing tool"
 requires-python = ">=3.10,<=3.12"
 dependencies = [
     "imgui_bundle>=1.6.1",
-    "pyglet == 2.0.21",
+    "pyglet",
     "warp-lang",
     "torch",
     "numpy",

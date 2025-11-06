@@ -284,8 +284,8 @@ class Viewer3D:
             gl.glGenTextures(1, self._frame_depth_texture)
 
         with self._viewport_block as ubo:
-            ubo.width[0] = ctypes.c_float(float(self.screen_width))
-            ubo.height[0] = ctypes.c_float(float(self.screen_height))
+            ubo.width = ctypes.c_float(float(self.screen_width))
+            ubo.height = ctypes.c_float(float(self.screen_height))
 
         # set up RGB texture
         gl.glBindFramebuffer(gl.GL_FRAMEBUFFER, 0)

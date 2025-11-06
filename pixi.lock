@@ -55,7 +55,7 @@ environments:
       - pypi: https://files.pythonhosted.org/packages/ff/ff/847841bacfbefc97a00036e0fce5a0f086b640756dc38caea5e1bb002655/nvidia_nvjitlink_cu12-12.4.127-py3-none-manylinux2014_x86_64.whl
       - pypi: https://files.pythonhosted.org/packages/87/20/199b8713428322a2f22b722c62b8cc278cc53dffa9705d744484b5035ee9/nvidia_nvtx_cu12-12.4.127-py3-none-manylinux2014_x86_64.whl
       - pypi: https://files.pythonhosted.org/packages/39/63/b3fc299528d7df1f678b0666002b37affe6b8751225c3d9c12cf530e73ed/pillow-11.0.0-cp311-cp311-manylinux_2_28_x86_64.whl
-      - pypi: https://files.pythonhosted.org/packages/d7/bb/62882e1cb57e645d72c1cd5a8457445ff0d9211c64dec5886896c591ee03/pyglet-2.0.21-py3-none-any.whl
+      - pypi: https://files.pythonhosted.org/packages/f1/fa/1928df8eac79c5d92f62139c79f19682761dbbac745e3b7831e9d2d76cd0/pyglet-2.1.10-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/99/48/00e31747821d3fc56faddd00a4725454d1e694a8b67d715cf20f531506a5/PyOpenGL-3.1.7-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/93/6b/701776d4bd6bdd9b629c387b5140f006185bd8ddea16788a44434376b98f/scipy-1.14.1-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl
       - pypi: https://files.pythonhosted.org/packages/b2/fe/81695a1aa331a842b582453b605175f419fe8540355886031328089d840a/sympy-1.13.1-py3-none-any.whl
@@ -398,10 +398,10 @@ packages:
 - pypi: ./
   name: marsoom
   version: 2.0.14
-  sha256: bd2c2f5fc92e3be92d070e686a1396b90fe5c198f5fe84949205361d7900e0c7
+  sha256: c8874825725b8d7f5d1d9dd1ca1eae9c0022fbafe69e638a4779067bcc14e8cd
   requires_dist:
   - imgui-bundle>=1.6.1
-  - pyglet==2.0.21
+  - pyglet
   - warp-lang
   - torch
   - numpy
@@ -604,10 +604,10 @@ packages:
   - pkg:pypi/pip?source=hash-mapping
   size: 1245116
   timestamp: 1734466348103
-- pypi: https://files.pythonhosted.org/packages/d7/bb/62882e1cb57e645d72c1cd5a8457445ff0d9211c64dec5886896c591ee03/pyglet-2.0.21-py3-none-any.whl
+- pypi: https://files.pythonhosted.org/packages/f1/fa/1928df8eac79c5d92f62139c79f19682761dbbac745e3b7831e9d2d76cd0/pyglet-2.1.10-py3-none-any.whl
   name: pyglet
-  version: 2.0.21
-  sha256: 190db2cdfab453bf30d3433ad80b6952d291ecacc42e065cceae0ef771e2fc63
+  version: 2.1.10
+  sha256: dee753d97b9eb27c4ee4f1118b2142a1d8953d1b2d84589cc37e69973b8593f9
   requires_python: '>=3.8'
 - pypi: https://files.pythonhosted.org/packages/99/48/00e31747821d3fc56faddd00a4725454d1e694a8b67d715cf20f531506a5/PyOpenGL-3.1.7-py3-none-any.whl
   name: pyopengl

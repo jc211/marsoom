@@ -3,7 +3,7 @@ import math
 import sys
 from contextlib import contextmanager
 from dataclasses import dataclass
-from typing import Optional, Tuple, Literal
+from typing import Literal, Optional, Tuple
 
 import numpy as np
 import pyglet
@@ -735,7 +735,7 @@ class Viewer3D:
         if self.window_draw_list:
             self.tl = imgui.get_cursor_screen_pos()
             imgui.image(
-                self._frame_texture.value,
+                imgui.ImTextureRef(self._frame_texture.value),
                 ImVec2(self.screen_width, self.screen_height),
                 uv0=ImVec2(0, 1),
                 uv1=ImVec2(1, 0),

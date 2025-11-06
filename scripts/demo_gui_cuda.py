@@ -1,26 +1,24 @@
 from pathlib import Path
 
 import numpy as np
-import torch
-
-from pyglet.math import Mat4
-import pyglet.gl as gl
-import pyglet
-
 import open3d as o3d
+import pyglet
+import pyglet.gl as gl
+import torch
+from pyglet.math import Mat4
 
 import marsoom
-from marsoom import imgui, guizmo
-
+import marsoom.cuda
 import marsoom.cuda.ellipse_renderer_2
 import marsoom.grid
 import marsoom.texture
-import marsoom.cuda
+from marsoom import guizmo, imgui
 
 pyglet.options["debug_gl"] = True
 pyglet.options["debug_gl_shaders"] = True
 
 SCRIPT_PATH = Path(__file__).parent
+
 
 class CustomWindow(marsoom.Window):
     def __init__(self):
@@ -30,7 +28,6 @@ class CustomWindow(marsoom.Window):
         self.batch = pyglet.graphics.Batch()
         self.grid = marsoom.grid.Grid(grid_spacing=0.1, grid_count=10, batch=self.batch)
 
-
         points = torch.randn(100, 3, dtype=torch.float32)
         colors = torch.rand(100, 4, dtype=torch.float32)
         self.points = marsoom.cuda.PointRenderer()
@@ -38,14 +35,16 @@ class CustomWindow(marsoom.Window):
             mesh=o3d.geometry.TriangleMesh.create_sphere(radius=0.1),
         )
         positions = torch.rand(10, 3, dtype=torch.float32).cuda()
-        positions[:,0] -= 1.0
+        positions[:, 0] -= 1.0
         self.mesh_renderer.update(
             positions=positions,
         )
 
         self.ellipse_renderer = marsoom.cuda.ellipse_renderer_2.EllipseRenderer()
-        self.ellipse_mesh_renderer = marsoom.cuda.InstancedMeshRenderer.from_open3d_mesh(
-            mesh=o3d.geometry.TriangleMesh.create_sphere(radius=0.1),
+        self.ellipse_mesh_renderer = (
+            marsoom.cuda.InstancedMeshRenderer.from_open3d_mesh(
+                mesh=o3d.geometry.TriangleMesh.create_sphere(radius=0.1),
+            )
         )
         num_ellipses = 100
         positions = torch.rand(num_ellipses, 3, dtype=torch.float32).cuda()
@@ -54,18 +53,15 @@ class CustomWindow(marsoom.Window):
         # quats[:, 0] = 1.0
         quats = torch.randn(num_ellipses, 4, dtype=torch.float32).cuda()
         quats = torch.nn.functional.normalize(quats, p=2, dim=1)
-        scales = torch.rand(num_ellipses, 3, dtype=torch.float32).cuda()* 0.2
+        scales = torch.rand(num_ellipses, 3, dtype=torch.float32).cuda() * 0.2
         # scales = torch.ones(num_ellipses, 3, dtype=torch.float32).cuda() * 0.2
 
         colors = torch.rand(num_ellipses, 3, dtype=torch.float32).cuda()
         conics = torch.zeros(num_ellipses, 3, dtype=torch.float32).cuda()
-        conics[:, 0] = 1/100.0
-        conics[:, 2] = 1/100.0
+        conics[:, 0] = 1 / 100.0
+        conics[:, 2] = 1 / 100.0
         self.ellipse_mesh_renderer.update(
-            colors=colors,
-            positions=positions,
-            rotations=quats,
-            scaling=scales
+            colors=colors, positions=positions, rotations=quats, scaling=scales
         )
         # line size
         self.ellipse_renderer.update(
@@ -74,17 +70,10 @@ class CustomWindow(marsoom.Window):
             # conics=conics,
             quats=quats,
             scales=scales,
-            opacity=torch.rand(num_ellipses, 1, dtype=torch.float32).cuda()
+            opacity=torch.rand(num_ellipses, 1, dtype=torch.float32).cuda(),
         )
 
-        self.viewer_2d = self.create_2D_viewer(
-            "My Image Viewer",
-            pixels_to_units=get_pixels_to_meters()
-        )
-
-
-
-
+        self.viewer_2d = self.create_2D_viewer(pixels_to_units=get_pixels_to_meters())
 
     def draw_demo_controls(self):
         imgui.begin("Debug")
@@ -103,15 +92,14 @@ class CustomWindow(marsoom.Window):
 
         imgui.end()
 
-
     def render(self):
         self.draw_demo_controls()
 
-        imgui.begin("3D Drawing")   
+        imgui.begin("3D Drawing")
         pyglet.gl.glPointSize(6)
         self.points.update_positions_and_colors(
             torch.rand(10000, 3, dtype=torch.float32).cuda(),
-            torch.rand(10000, 4, dtype=torch.float32).cuda()
+            torch.rand(10000, 4, dtype=torch.float32).cuda(),
         )
         with self.viewer.draw(in_imgui_window=True) as ctx:
             self.batch.draw()
@@ -120,7 +108,7 @@ class CustomWindow(marsoom.Window):
             self.ellipse_mesh_renderer.draw()
             self.ellipse_renderer.draw(10.0)
             gl.glLineWidth(1.0)
-        
+
         imgui.begin("2D Viewer")
         sample_image = torch.randn(480, 640, 3, dtype=torch.float32, device="cuda")
         self.viewer_2d.update_image(sample_image)
@@ -128,18 +116,17 @@ class CustomWindow(marsoom.Window):
         self.viewer_2d.axis(unit=marsoom.eViewerUnit.UNIT, scale=0.1)
         imgui.end()
 
-        guizmo.set_id(0)
+        guizmo.push_id(0)
         self.viewer.process_nav()
+        guizmo.pop_id()
         imgui.end()
 
 
-
 def get_pixels_to_meters():
-    pixels_to_meters = np.array(
-            [[0.0, 0.001, 0.0], [0.001, 0.0, 0.0], [0.0, 0.0, 1.0]]
-    )
+    pixels_to_meters = np.array([[0.0, 0.001, 0.0], [0.001, 0.0, 0.0], [0.0, 0.0, 1.0]])
 
     return pixels_to_meters
+
 
 if __name__ == "__main__":
     window = CustomWindow()
